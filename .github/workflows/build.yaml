@@ -26,12 +26,12 @@ jobs:
         run: |
           tox -s -e "py37,py38,py39,py310"
 
-      - name: Test Summary
-        uses: test-summary/action@v1
-        with:
-          paths: |
-            test-reports/*.xml
-        if: always()
+#      - name: Test Summary
+#        uses: test-summary/action@v1
+#        with:
+#          paths: |
+#            test-reports/*.xml
+#        if: always()
   
   lint:
     runs-on: ubuntu-latest
@@ -58,9 +58,9 @@ jobs:
           python3 -m build
           twine check dist/*
 
-      - name: Lint Summary
-        uses: test-summary/action@v1
-        with:
-          paths: |
-            test-reports/*.xml
-        if: always()
+#      - name: Lint Summary
+#        uses: test-summary/action@v1
+#        with:
+#          paths: |
+#            test-reports/*.xml
+#        if: always()
