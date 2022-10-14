@@ -1,0 +1,8 @@
+mkdocs
+mkdocs-material
+mkdocstrings[python]
+
+#netdut dependencies
+pytest
+pyeapi
+pexpect

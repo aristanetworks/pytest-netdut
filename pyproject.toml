@@ -1,0 +1,5 @@
+# See https://packaging.python.org/en/latest/tutorials/packaging-projects/
+
+[build-system]
+requires = ["setuptools>=39.0"]
+build-backend = "setuptools.build_meta"
