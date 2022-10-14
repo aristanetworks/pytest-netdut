@@ -24,7 +24,7 @@ jobs:
       
       - name: Test and lint using tox
         run: |
-          tox -s -e "py37 py38 py39 py310"
+          tox -s -e "py37,py38,py39,py310"
   
   lint:
     runs-on: ubuntu-latest
