@@ -5,8 +5,6 @@ Netdut: automated software testing for switches using pytest
 ![Python Versions](https://img.shields.io/pypi/pyversions/pytest-netdut.svg)
 ![collection version](https://img.shields.io/github/v/release/aristanetworks/pytest-netdut) 
 ![License](https://img.shields.io/github/license/aristanetworks/pytest-netdut)
-![Travis CI](https://travis-ci.org/aristanetworks/pytest-netdut.svg?branch=main)
-![Appveyor](https://ci.appveyor.com/api/projects/status/github/aristanetworks/pytest-netdut?branch=master)
 
 Netdut is a [pytest](https://docs.pytest.org/) plugin which provides infrastructure (e.g. pytest fixtures) which make it easy to write automated tests for network switches.
 
