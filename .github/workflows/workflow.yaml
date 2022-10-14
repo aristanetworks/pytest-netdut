@@ -27,6 +27,12 @@ jobs:
       - name: Run tox
         run: |
           tox -s
+
+      - name: Publish Test Report
+        uses: mikepenz/action-junit-report@v3
+        if: always() # always run even if the previous step fails
+        with:
+          report_paths: '**/test-results/*.xml'
       
 #      - name: Test with pytest
 #        run: |
