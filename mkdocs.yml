@@ -1,0 +1,44 @@
+# See https://github.com/aristanetworks/ansible-avd/blob/devel/mkdocs.yml for Arista standards
+
+site_name: pytest-netdut
+site_description: A pytest plugin to enable remote testing on Arista network switches.
+site_author: Arista Networks FDK Team
+
+repo_name: pytest-netdut
+repo_url: https://github.com/aristanetworks/pytest-netdut
+
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.instant
+    - navigation.top
+    - search.highlight
+    - header.autohide
+    - content.code.annotate
+
+extra:
+  social:
+    - icon: fontawesome/brands/github-alt
+      link: https://github.com/aristanetworks/pytest-netdut
+    - icon: fontawesome/solid/globe
+      link: https://www.arista.com
+
+markdown_extensions:
+  - pymdownx.snippets
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+
+plugins:
+- mkdocstrings:
+    handlers:
+      python:
+        paths: [src]
+
+watch:
+- src/pytest_netdut
+
+nav:
+- Home: index.md
+- API:  api.md
