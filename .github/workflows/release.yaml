@@ -1,0 +1,27 @@
+name: Release
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  release:
+    name: Deploy release to PyPI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.x
+
+      - name: Build package
+        run: python setup.py sdist
+        
+      - name: Upload package
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
