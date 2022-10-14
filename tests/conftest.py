@@ -5,7 +5,7 @@
 # -   fdk-support@arista.com
 # -
 # - Description:
-# -   Test configuration for netdut tests. 
+# -   Test configuration for netdut tests.
 # -
 # -   Licensed under BSD 3-clause license:
 # -     https://opensource.org/licenses/BSD-3-Clause

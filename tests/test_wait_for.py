@@ -5,7 +5,7 @@
 # -   fdk-support@arista.com
 # -
 # - Description:
-# -   Tests for the wait_for function. 
+# -   Tests for the wait_for function.
 # -
 # -   Licensed under BSD 3-clause license:
 # -     https://opensource.org/licenses/BSD-3-Clause

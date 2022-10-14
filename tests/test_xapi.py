@@ -5,7 +5,7 @@
 # -   fdk-support@arista.com
 # -
 # - Description:
-# -   Tests for the xapi fixture. 
+# -   Tests for the xapi fixture.
 # -
 # -   Licensed under BSD 3-clause license:
 # -     https://opensource.org/licenses/BSD-3-Clause
@@ -14,7 +14,7 @@
 # -   license-bsd-3-clause
 # -
 # -------------------------------------------------------------------------------
- 
+
 import pytest
 import pytest_netdut
 

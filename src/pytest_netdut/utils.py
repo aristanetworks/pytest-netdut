@@ -20,6 +20,7 @@ import time
 import pexpect
 import pytest
 
+
 @pytest.fixture(scope="session")
 def wait_for():
     """A fixture that returns a function that can be called to wait for something to happen.

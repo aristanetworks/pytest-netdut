@@ -5,7 +5,7 @@
 # -   fdk-support@arista.com
 # -
 # - Description:
-# -   Factories to create DUT fixtures 
+# -   Factories to create DUT fixtures
 # -
 # -   Licensed under BSD 3-clause license:
 # -     https://opensource.org/licenses/BSD-3-Clause

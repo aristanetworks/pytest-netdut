@@ -5,7 +5,7 @@
 # -   fdk-support@arista.com
 # -
 # - Description:
-# -   Tests for the netdut fixtures. 
+# -   Tests for the netdut fixtures.
 # -
 # -   Licensed under BSD 3-clause license:
 # -     https://opensource.org/licenses/BSD-3-Clause
@@ -14,6 +14,7 @@
 # -   license-bsd-3-clause
 # -
 # -------------------------------------------------------------------------------
+
 
 def test_dut_fixtures(testdir):
     """Make sure that pytest accepts our fixture."""
