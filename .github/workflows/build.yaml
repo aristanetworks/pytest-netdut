@@ -25,6 +25,13 @@ jobs:
       - name: Test using tox
         run: |
           tox -s -e "py37,py38,py39,py310"
+
+      - name: Test Summary
+        uses: test-summary/action@v1
+        with:
+          paths: |
+            test-reports/*.xml
+        if: always()
   
   lint:
     runs-on: ubuntu-latest
@@ -40,9 +47,20 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install build twine
-      
+          pip install tox build twine
+
+      - name: Lint
+        run: |
+          tox -e "black,prospector"
+
       - name: Build and check the build
         run: |
           python3 -m build
-          twine check dist/* 
+          twine check dist/*
+
+      - name: Lint Summary
+        uses: test-summary/action@v1
+        with:
+          paths: |
+            test-reports/*.xml
+        if: always()
