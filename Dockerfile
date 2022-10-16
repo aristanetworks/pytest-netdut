@@ -1,7 +1,7 @@
 FROM fedora:34 as base
 
 RUN dnf -y update && dnf clean all
-RUN dnf -y install python3.6 python3.7 python3.8 python3.9 python3.10 pypy3 tox && dnf clean all
+RUN dnf -y install python3.6 python3.7 python3.8 python3.9 python3.10 pypy3 tox git && dnf clean all
 RUN python3 -m pip install --upgrade build twine mkdocs && dnf clean all
 
 FROM base as build
