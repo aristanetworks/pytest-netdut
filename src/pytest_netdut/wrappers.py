@@ -73,7 +73,7 @@ _match_upper = re.compile(r"(?<!^)(?=[A-Z])")
 def _de_camel_case(w):
     if w.isalnum() and w[0].islower():
         return w
-    return "/".join(re.sub(_match_upper, "_", k).lower() for k in w.split())
+    return "/".join(re.sub(_match_upper, "_", k).lower() for k in w.split("/"))
 
 
 def _convert(d):
