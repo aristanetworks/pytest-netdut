@@ -66,6 +66,27 @@ def _eos_to_mos_translator(cmds):
     return commands
 
 
+# match uppercase in word
+_match_upper = re.compile(r"(?<!^)(?=[A-Z])")
+
+
+def _de_camel_case(w):
+    if w.isalnum() and w[0].islower():
+        return w
+    return "/".join(re.sub(_match_upper, "_", k).lower() for k in w.split())
+
+
+def _convert(d):
+    converted_dict = {}
+    for k, v in d.items():
+        nk = _de_camel_case(str(k))
+        if isinstance(v, dict):
+            converted_dict[nk] = _convert(v)
+        else:
+            converted_dict[nk] = v
+    return converted_dict
+
+
 class CLI(px.CLI):
     """Extends pexpect.spawn (via px.CLI) to add support for interacting with
     an Arista style CLI."""
@@ -101,7 +122,7 @@ class EAPI:
         """
         self.translator = translator
 
-    def sendcmd(self, cmd, timeout=None):
+    def sendcmd(self, cmd, timeout=None, snake_case_result=True):
         """Returns the deserialized JSON result of running a command via the CAPI/eAPI.
 
         Args:
@@ -113,9 +134,15 @@ class EAPI:
             cmds = self.translator(cmd)
         else:
             cmds = [cmd]
-        return self._conn.execute(cmds)["result"][0]
 
-    def sendcmds(self, cmds, timeout=None):
+        result = self._conn.execute(cmds)["result"][0]
+
+        if self.translator and snake_case_result:
+            return _convert(result)
+
+        return result
+
+    def sendcmds(self, cmds, timeout=None, snake_case_result=True):
         """Returns a list of results of running multiple commands via the CAPI/eAPI.
 
         Args:
@@ -126,7 +153,12 @@ class EAPI:
         if self.translator:
             cmds = self.translator(cmds)
         logging.info(pprint.pformat(cmds))
-        return self._conn.execute(_splitcmds(cmds))["result"]
+        result = self._conn.execute(_splitcmds(cmds))["result"]
+
+        if self.translator and snake_case_result:
+            return [_convert(item) for item in result]
+
+        return result
 
 
 @pytest.fixture(scope="session", name="eapi_enabled")
