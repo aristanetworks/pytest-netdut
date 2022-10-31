@@ -33,8 +33,10 @@ def _splitcmds(cmds):
         return [cmd.strip() for cmd in cmds.strip().splitlines()]
     return cmds
 
+class Translator:
+    # match uppercase in word
+    _match_upper = re.compile(r"(?<!^)(?=[A-Z])")
 
-def _eos_to_mos_translator(cmds):
     translations = [
         (r"interface ap1/(.*)", r"interface ap\1"),
         (r"l1 source interface ap1/(.*)", r"source ap\1"),
@@ -51,40 +53,38 @@ def _eos_to_mos_translator(cmds):
         (r"no traffic-loopback", r"no loopback"),
     ]
 
-    commands = []
-    for command in _splitcmds(cmds):
-        for (before, after) in translations:
-            matcher = re.match(before, command)
-            if matcher:
-                commands.append(matcher.expand(after))
-                break
-        else:
-            # If we don't get a match, just append the original.
-            commands.append(command)
-    if commands != cmds:
-        logging.debug("Before: %s, After: %s", repr(cmds), repr(commands))
-    return commands
+    def _de_camel_case(self, w):
+        if w.isalnum() and w[0].islower():
+            return w
+        return "/".join(re.sub(self._match_upper, "_", k).lower() for k in w.split("/"))
 
+    def _convert(self, d):
+        converted_dict = {}
+        for k, v in d.items():
+            nk = self._de_camel_case(str(k))
+            if isinstance(v, dict):
+                converted_dict[nk] = self._convert(v)
+            else:
+                converted_dict[nk] = v
+        return converted_dict
 
-# match uppercase in word
-_match_upper = re.compile(r"(?<!^)(?=[A-Z])")
+    def prep(self, cmds):
+        commands = []
+        for command in _splitcmds(cmds):
+            for (before, after) in self.translations:
+                matcher = re.match(before, command)
+                if matcher:
+                    commands.append(matcher.expand(after))
+                    break
+            else:
+                # If we don't get a match, just append the original.
+                commands.append(command)
+        if commands != cmds:
+            logging.debug("Before: %s, After: %s", repr(cmds), repr(commands))
+        return commands
 
-
-def _de_camel_case(w):
-    if w.isalnum() and w[0].islower():
-        return w
-    return "/".join(re.sub(_match_upper, "_", k).lower() for k in w.split("/"))
-
-
-def _convert(d):
-    converted_dict = {}
-    for k, v in d.items():
-        nk = _de_camel_case(str(k))
-        if isinstance(v, dict):
-            converted_dict[nk] = _convert(v)
-        else:
-            converted_dict[nk] = v
-    return converted_dict
+    def process(self, data):
+        return self._convert(data)
 
 
 class CLI(px.CLI):
@@ -118,11 +118,11 @@ class EAPI:
         This can be used, for example, to hide syntax differences between devices with different CLIs.
 
         Args:
-            translator (Callable): The function to be called before on each command.
+            translator (Class): The class which implements prep and process translator functions.
         """
         self.translator = translator
 
-    def sendcmd(self, cmd, timeout=None, snake_case_result=True):
+    def sendcmd(self, cmd, timeout=None, translate=True):
         """Returns the deserialized JSON result of running a command via the CAPI/eAPI.
 
         Args:
@@ -130,19 +130,19 @@ class EAPI:
         """
         if timeout:
             logging.debug("Timeout parameter is ignored by EAPI -- timeout=%f", timeout)
-        if self.translator:
-            cmds = self.translator(cmd)
+        if self.translator and translate:
+            cmds = self.translator.prep(cmd)
         else:
             cmds = [cmd]
 
         result = self._conn.execute(cmds)["result"][0]
 
-        if self.translator and snake_case_result:
-            return _convert(result)
+        if self.translator and translate:
+            return self.translator.process(result)
 
         return result
 
-    def sendcmds(self, cmds, timeout=None, snake_case_result=True):
+    def sendcmds(self, cmds, timeout=None, translate=True):
         """Returns a list of results of running multiple commands via the CAPI/eAPI.
 
         Args:
@@ -151,12 +151,12 @@ class EAPI:
         if timeout:
             logging.debug("Timeout parameter is ignored by EAPI -- timeout=%f", timeout)
         if self.translator:
-            cmds = self.translator(cmds)
+            cmds = self.translator.prep(cmds)
         logging.info(pprint.pformat(cmds))
         result = self._conn.execute(_splitcmds(cmds))["result"]
 
-        if self.translator and snake_case_result:
-            return [_convert(item) for item in result]
+        if self.translator and translate:
+            return [self.translator.process(item) for item in result]
 
         return result
 
@@ -202,7 +202,7 @@ def eapi_enabled_fixture(wait_for):
                 eapi = EAPI(hostname=hostname, transport=transport)
                 eapi.sendcmd("show version")
                 if ssh.cli_flavor == "mos":
-                    eapi.set_translator(_eos_to_mos_translator)
+                    eapi.set_translator(Translator())
                 return eapi
             except (pyeapi.eapilib.ConnectionError, ConnectionRefusedError):
                 return None
