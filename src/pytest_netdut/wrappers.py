@@ -54,8 +54,6 @@ class Translator:
     ]
 
     def _de_camel_case(self, w):
-        if w.isalnum() and w[0].islower():
-            return w
         return "/".join(re.sub(self._match_upper, "_", k).lower() for k in w.split("/"))
 
     def _convert(self, d):
