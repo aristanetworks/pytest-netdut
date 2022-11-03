@@ -42,10 +42,7 @@ class Translator:
         (r"l1 source interface ap1/(.*)", r"source ap\1"),
         (r"l1 source interface ap(.*)", "CAN NOT TRANSLATE"),
         (r"l1 source interface (.*)", r"source \1"),
-        (
-            r"l1 source mac",
-            r"source mac",
-        ),
+        (r"l1 source mac", r"source mac"),
         (r"no l1 source", r"no source"),
         (r"bash sudo cortina", "CAN NOT TRANSLATE"),
         (r"traffic-loopback source network device phy", r"loopback internal"),
