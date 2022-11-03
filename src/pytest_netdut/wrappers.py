@@ -79,7 +79,9 @@ class Translator:
         return commands
 
     def process(self, data):
-        return self._convert(data)
+        if type(data) is dict:
+            return self._convert(data)
+        return data
 
 
 class CLI(px.CLI):
