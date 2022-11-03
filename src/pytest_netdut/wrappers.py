@@ -33,6 +33,7 @@ def _splitcmds(cmds):
         return [cmd.strip() for cmd in cmds.strip().splitlines()]
     return cmds
 
+
 class Translator:
     # match uppercase in word
     _match_upper = re.compile(r"(?<!^)(?=[A-Z])")
@@ -79,7 +80,7 @@ class Translator:
         return commands
 
     def process(self, data):
-        if type(data) is dict:
+        if isinstance(data, dict):
             return self._convert(data)
         return data
 
