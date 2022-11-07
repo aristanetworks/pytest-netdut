@@ -1,6 +1,10 @@
 name: pytest-netdut
 
-on: [push]
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, reopened, edited]
 
 jobs:
   test:
