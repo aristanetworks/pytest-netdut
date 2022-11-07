@@ -35,54 +35,85 @@ def _splitcmds(cmds):
 
 
 class Translator:
-    # match uppercase in word
-    _match_upper = re.compile(r"(?<!^)(?=[A-Z])")
+    """Base class which implements translation functions for hiding syntax
+    and result differences between devices with different operating systems.
 
-    translations = [
-        (r"interface ap1/(.*)", r"interface ap\1"),
-        (r"l1 source interface ap1/(.*)", r"source ap\1"),
-        (r"l1 source interface ap(.*)", "CAN NOT TRANSLATE"),
-        (r"l1 source interface (.*)", r"source \1"),
-        (r"l1 source mac", r"source mac"),
-        (r"no l1 source", r"no source"),
-        (r"bash sudo cortina", "CAN NOT TRANSLATE"),
-        (r"traffic-loopback source network device phy", r"loopback internal"),
-        (r"traffic-loopback source system device phy", r"loopback"),
-        (r"no traffic-loopback", r"no loopback"),
-    ]
+    Override the _standardize_key function to implement result processing.
 
-    def _de_camel_case(self, w):
-        return "/".join(re.sub(self._match_upper, "_", k).lower() for k in w.split("/"))
+    Args:
+        config_translators (iterable[regex pattern]): List of regex patterns.
+    """
 
-    def _convert(self, d):
-        converted_dict = {}
+    def __init__(self, config_patterns):
+        self.config_patterns = config_patterns
+
+    def standardize_key(self, k):
+        """Returns a standardized key.
+
+        Args:
+            k (str): Key to process.
+        """
+        raise NotImplementedError
+
+    def process_dict(self, d):
+        result = {}
         for k, v in d.items():
-            nk = self._de_camel_case(str(k))
-            if isinstance(v, dict):
-                converted_dict[nk] = self._convert(v)
-            else:
-                converted_dict[nk] = v
-        return converted_dict
+            nk = self.standardize_key(str(k))
+            result[nk] = self.process_dict(v) if isinstance(v, dict) else v
+        return result
 
-    def prep(self, cmds):
-        commands = []
-        for command in _splitcmds(cmds):
-            for (before, after) in self.translations:
-                matcher = re.match(before, command)
-                if matcher:
-                    commands.append(matcher.expand(after))
-                    break
-            else:
-                # If we don't get a match, just append the original.
-                commands.append(command)
-        if commands != cmds:
-            logging.debug("Before: %s, After: %s", repr(cmds), repr(commands))
-        return commands
+    def translate(self, cmds=None, data=None):
+        """Two way translator for outgoing configuration commands or results.
 
-    def process(self, data):
-        if isinstance(data, dict):
-            return self._convert(data)
-        return data
+        Args:
+            cmds (str | Iterable[str]): Either an iterable of commands to be run or a newline separated string containing one or more commands.
+            data (str | dict): Results are typically a string or a dictionary.
+        """
+        if cmds:
+            commands = []
+            for command in _splitcmds(cmds):
+                for (before, after) in self.config_patterns:
+                    matcher = re.match(before, command)
+                    if matcher:
+                        commands.append(matcher.expand(after))
+                        break
+                else:
+                    # If we don't get a match, just append the original.
+                    commands.append(command)
+            if commands != cmds:
+                logging.debug("Before: %s, After: %s", repr(cmds), repr(commands))
+            return commands
+
+        if data:
+            if isinstance(data, dict):
+                result = self.process_dict(data)
+                return result
+            return data
+
+        return None
+
+
+class EOS_MOS_Translator(Translator):
+    """Standardize config and results to EOS."""
+
+    def __init__(self):
+        config_patterns = [
+            (r"interface ap1/(.*)", r"interface ap\1"),
+            (r"l1 source interface ap1/(.*)", r"source ap\1"),
+            (r"l1 source interface ap(.*)", "CAN NOT TRANSLATE"),
+            (r"l1 source interface (.*)", r"source \1"),
+            (r"l1 source mac", r"source mac"),
+            (r"no l1 source", r"no source"),
+            (r"bash sudo cortina", "CAN NOT TRANSLATE"),
+            (r"traffic-loopback source network device phy", r"loopback internal"),
+            (r"traffic-loopback source system device phy", r"loopback"),
+            (r"no traffic-loopback", r"no loopback"),
+        ]
+        self.key_pattern = re.compile(r"(?<!^)(?=[A-Z])")
+        super().__init__(config_patterns)
+
+    def standardize_key(self, k):
+        return "/".join(re.sub(self.key_pattern, "_", w).lower() for w in k.split("/"))
 
 
 class CLI(px.CLI):
@@ -116,9 +147,9 @@ class EAPI:
         This can be used, for example, to hide syntax differences between devices with different CLIs.
 
         Args:
-            translator (Class): The class which implements prep and process translator functions.
+            translator (Class): The class which implements a translate function.
         """
-        self.translator = translator
+        self.translator = translator.translate
 
     def sendcmd(self, cmd, timeout=None, translate=True):
         """Returns the deserialized JSON result of running a command via the CAPI/eAPI.
@@ -129,14 +160,14 @@ class EAPI:
         if timeout:
             logging.debug("Timeout parameter is ignored by EAPI -- timeout=%f", timeout)
         if self.translator and translate:
-            cmds = self.translator.prep(cmd)
+            cmds = self.translator(cmd)
         else:
             cmds = [cmd]
 
         result = self._conn.execute(cmds)["result"][0]
 
         if self.translator and translate:
-            return self.translator.process(result)
+            return self.translator(data=result)
 
         return result
 
@@ -149,12 +180,12 @@ class EAPI:
         if timeout:
             logging.debug("Timeout parameter is ignored by EAPI -- timeout=%f", timeout)
         if self.translator:
-            cmds = self.translator.prep(cmds)
+            cmds = self.translator(cmds)
         logging.info(pprint.pformat(cmds))
         result = self._conn.execute(_splitcmds(cmds))["result"]
 
         if self.translator and translate:
-            return [self.translator.process(item) for item in result]
+            return [self.translator(data=item) for item in result]
 
         return result
 
@@ -200,7 +231,7 @@ def eapi_enabled_fixture(wait_for):
                 eapi = EAPI(hostname=hostname, transport=transport)
                 eapi.sendcmd("show version")
                 if ssh.cli_flavor == "mos":
-                    eapi.set_translator(Translator())
+                    eapi.set_translator(EOS_MOS_Translator())
                 return eapi
             except (pyeapi.eapilib.ConnectionError, ConnectionRefusedError):
                 return None
