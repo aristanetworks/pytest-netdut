@@ -41,7 +41,7 @@ class Translator:
     Override the _standardize_key function to implement result processing.
 
     Args:
-        config_translators (iterable[regex pattern]): List of regex patterns.
+        config_patterns (iterable[regex pattern]): List of regex patterns for CLI translations.
     """
 
     def __init__(self, config_patterns):
@@ -86,8 +86,7 @@ class Translator:
 
         if data:
             if isinstance(data, dict):
-                result = self.process_dict(data)
-                return result
+                return self.process_dict(data)
             return data
 
         return None
