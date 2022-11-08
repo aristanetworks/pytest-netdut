@@ -38,7 +38,7 @@ class Translator:
     """Base class which implements translation functions for hiding syntax
     and result differences between devices with different operating systems.
 
-    Override the _standardize_key function to implement result processing.
+    Override the standardize_key function to implement result processing.
 
     Args:
         config_patterns (iterable[regex pattern]): List of regex patterns for CLI translations.
