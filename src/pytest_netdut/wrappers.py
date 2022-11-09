@@ -62,34 +62,35 @@ class Translator:
             result[nk] = self.process_dict(v) if isinstance(v, dict) else v
         return result
 
-    def translate(self, cmds=None, data=None):
-        """Two way translator for outgoing configuration commands or results.
+    def cli(self, cmds):
+        """CLI translator.
 
         Args:
             cmds (str | Iterable[str]): Either an iterable of commands to be run or a newline separated string containing one or more commands.
+        """
+        commands = []
+        for command in _splitcmds(cmds):
+            for (before, after) in self.config_patterns:
+                matcher = re.match(before, command)
+                if matcher:
+                    commands.append(matcher.expand(after))
+                    break
+            else:
+                # If we don't get a match, just append the original.
+                commands.append(command)
+        if commands != cmds:
+            logging.debug("Before: %s, After: %s", repr(cmds), repr(commands))
+        return commands
+
+    def json(self, data):
+        """JSON translator.
+
+        Args:
             data (str | dict): Results are typically a string or a dictionary.
         """
-        if cmds:
-            commands = []
-            for command in _splitcmds(cmds):
-                for (before, after) in self.config_patterns:
-                    matcher = re.match(before, command)
-                    if matcher:
-                        commands.append(matcher.expand(after))
-                        break
-                else:
-                    # If we don't get a match, just append the original.
-                    commands.append(command)
-            if commands != cmds:
-                logging.debug("Before: %s, After: %s", repr(cmds), repr(commands))
-            return commands
-
-        if data:
-            if isinstance(data, dict):
-                return self.process_dict(data)
-            return data
-
-        return None
+        if isinstance(data, dict):
+            return self.process_dict(data)
+        return data
 
 
 class EOS_MOS_Translator(Translator):
@@ -146,9 +147,9 @@ class EAPI:
         This can be used, for example, to hide syntax differences between devices with different CLIs.
 
         Args:
-            translator (Class): The class which implements a translate function.
+            translator (Class): The class which implements cli and json translator functions.
         """
-        self.translator = translator.translate
+        self.translator = translator
 
     def sendcmd(self, cmd, timeout=None, translate=True):
         """Returns the deserialized JSON result of running a command via the CAPI/eAPI.
@@ -159,16 +160,16 @@ class EAPI:
         if timeout:
             logging.debug("Timeout parameter is ignored by EAPI -- timeout=%f", timeout)
         if self.translator and translate:
-            cmds = self.translator(cmd)
+            cmds = self.translator.cli(cmd)
         else:
             cmds = [cmd]
 
-        result = self._conn.execute(cmds)["result"][0]
+        data = self._conn.execute(cmds)["result"][0]
 
         if self.translator and translate:
-            return self.translator(data=result)
+            return self.translator.json(data)
 
-        return result
+        return data
 
     def sendcmds(self, cmds, timeout=None, translate=True):
         """Returns a list of results of running multiple commands via the CAPI/eAPI.
@@ -179,14 +180,14 @@ class EAPI:
         if timeout:
             logging.debug("Timeout parameter is ignored by EAPI -- timeout=%f", timeout)
         if self.translator:
-            cmds = self.translator(cmds)
+            cmds = self.translator.cli(cmds)
         logging.info(pprint.pformat(cmds))
-        result = self._conn.execute(_splitcmds(cmds))["result"]
+        data = self._conn.execute(_splitcmds(cmds))["result"]
 
         if self.translator and translate:
-            return [self.translator(data=item) for item in result]
+            return [self.translator.json(item) for item in data]
 
-        return result
+        return data
 
 
 @pytest.fixture(scope="session", name="eapi_enabled")
