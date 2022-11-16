@@ -44,8 +44,7 @@ class Translator:
         config_patterns (iterable[regex pattern]): List of regex patterns for CLI translations.
     """
 
-    def __init__(self, config_patterns):
-        self.config_patterns = config_patterns
+    config_patterns = []
 
     def standardize_key(self, k):
         """Returns a standardized key.
@@ -93,24 +92,23 @@ class Translator:
         return data
 
 
-class EOS_MOS_Translator(Translator):
+class MosTranslator(Translator):
     """Standardize config and results to EOS."""
 
-    def __init__(self):
-        config_patterns = [
-            (r"interface ap1/(.*)", r"interface ap\1"),
-            (r"l1 source interface ap1/(.*)", r"source ap\1"),
-            (r"l1 source interface ap(.*)", "CAN NOT TRANSLATE"),
-            (r"l1 source interface (.*)", r"source \1"),
-            (r"l1 source mac", r"source mac"),
-            (r"no l1 source", r"no source"),
-            (r"bash sudo cortina", "CAN NOT TRANSLATE"),
-            (r"traffic-loopback source network device phy", r"loopback internal"),
-            (r"traffic-loopback source system device phy", r"loopback"),
-            (r"no traffic-loopback", r"no loopback"),
-        ]
-        self.key_pattern = re.compile(r"(?<!^)(?=[A-Z])")
-        super().__init__(config_patterns)
+    config_patterns = [
+        (r"interface ap1/(.*)", r"interface ap\1"),
+        (r"l1 source interface ap1/(.*)", r"source ap\1"),
+        (r"l1 source interface ap(.*)", "CAN NOT TRANSLATE"),
+        (r"l1 source interface (.*)", r"source \1"),
+        (r"l1 source mac", r"source mac"),
+        (r"no l1 source", r"no source"),
+        (r"bash sudo cortina", "CAN NOT TRANSLATE"),
+        (r"traffic-loopback source network device phy", r"loopback internal"),
+        (r"traffic-loopback source system device phy", r"loopback"),
+        (r"no traffic-loopback", r"no loopback"),
+    ]
+
+    key_pattern = re.compile(r"(?<!^)(?=[A-Z])")
 
     def standardize_key(self, k):
         return "/".join(re.sub(self.key_pattern, "_", w).lower() for w in k.split("/"))
@@ -231,7 +229,7 @@ def eapi_enabled_fixture(wait_for):
                 eapi = EAPI(hostname=hostname, transport=transport)
                 eapi.sendcmd("show version")
                 if ssh.cli_flavor == "mos":
-                    eapi.set_translator(EOS_MOS_Translator())
+                    eapi.set_translator(MosTranslator())
                 return eapi
             except (pyeapi.eapilib.ConnectionError, ConnectionRefusedError):
                 return None
