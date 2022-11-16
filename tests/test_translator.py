@@ -46,7 +46,7 @@ def test_eapi_translator(mocker, mock_pyeapi):
     import pytest_netdut
 
     eapi = pytest_netdut.wrappers.EAPI("mock_host", "mock_transport")
-    eapi.set_translator(pytest_netdut.wrappers.EOS_MOS_Translator())
+    eapi.set_translator(pytest_netdut.wrappers.MosTranslator())
 
     result = eapi.sendcmd(["one_command"])
     assert "app_name" in result
