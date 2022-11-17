@@ -36,29 +36,28 @@ def _splitcmds(cmds):
 
 class Translator:
     """Base class which implements translation functions for hiding syntax
-    and result differences between devices with different operating systems.
+    and result (key) differences between devices with different operating systems.
 
-    Override the standardize_key function to implement result processing.
-
-    Args:
-        config_patterns (iterable[regex pattern]): List of regex patterns for CLI translations.
+    Override the translate_key function to implement result (key) processing.
+    Override config_patters to specify required config translation patterns.
     """
 
     config_patterns = []
 
-    def standardize_key(self, k):
-        """Returns a standardized key.
+    def translate_key(self, k):
+        """Implement the translation logic; returns a translated string.
 
         Args:
-            k (str): Key to process.
+            k (str): String to process.
         """
         raise NotImplementedError
 
-    def process_dict(self, d):
+    def translate_json_keys(self, d):
+        """Executes translate_key for each key in the dictionary"""
         result = {}
         for k, v in d.items():
-            nk = self.standardize_key(str(k))
-            result[nk] = self.process_dict(v) if isinstance(v, dict) else v
+            nk = self.translate_key(str(k))
+            result[nk] = self.translate_json_keys(v) if isinstance(v, dict) else v
         return result
 
     def cli(self, cmds):
@@ -88,12 +87,12 @@ class Translator:
             data (str | dict): Results are typically a string or a dictionary.
         """
         if isinstance(data, dict):
-            return self.process_dict(data)
+            return self.translate_json_keys(data)
         return data
 
 
 class MosTranslator(Translator):
-    """Standardize config and results to EOS."""
+    """Standardize config and result (keys) from MOS to EOS."""
 
     config_patterns = [
         (r"interface ap1/(.*)", r"interface ap\1"),
@@ -108,9 +107,11 @@ class MosTranslator(Translator):
         (r"no traffic-loopback", r"no loopback"),
     ]
 
+    # MOS EAPI calls are camel cased
+    # standardize to EOS snake case
     key_pattern = re.compile(r"(?<!^)(?=[A-Z])")
 
-    def standardize_key(self, k):
+    def translate_key(self, k):
         return "/".join(re.sub(self.key_pattern, "_", w).lower() for w in k.split("/"))
 
 
