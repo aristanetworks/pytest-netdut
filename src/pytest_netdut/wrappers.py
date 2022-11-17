@@ -34,16 +34,72 @@ def _splitcmds(cmds):
     return cmds
 
 
-def _eos_to_mos_translator(cmds):
-    translations = [
+class Translator:
+    """Base class which implements translation functions for hiding syntax
+    and result (key) differences between devices with different operating systems.
+
+    Override the translate_key function to implement result (key) processing.
+    Override config_patters to specify required config translation patterns.
+    """
+
+    config_patterns = []
+
+    def translate_key(self, k):
+        """Implement the translation logic; returns a translated string.
+
+        Args:
+            k (str): String to process.
+        """
+        raise NotImplementedError
+
+    def translate_json_keys(self, d):
+        """Executes translate_key for each key in the dictionary"""
+        result = {}
+        for k, v in d.items():
+            nk = self.translate_key(str(k))
+            result[nk] = self.translate_json_keys(v) if isinstance(v, dict) else v
+        return result
+
+    def cli(self, cmds):
+        """CLI translator.
+
+        Args:
+            cmds (str | Iterable[str]): Either an iterable of commands to be run or a newline separated string containing one or more commands.
+        """
+        commands = []
+        for command in _splitcmds(cmds):
+            for (before, after) in self.config_patterns:
+                matcher = re.match(before, command)
+                if matcher:
+                    commands.append(matcher.expand(after))
+                    break
+            else:
+                # If we don't get a match, just append the original.
+                commands.append(command)
+        if commands != cmds:
+            logging.debug("Before: %s, After: %s", repr(cmds), repr(commands))
+        return commands
+
+    def json(self, data):
+        """JSON translator.
+
+        Args:
+            data (str | dict): Results are typically a string or a dictionary.
+        """
+        if isinstance(data, dict):
+            return self.translate_json_keys(data)
+        return data
+
+
+class MosTranslator(Translator):
+    """Standardize config and result (keys) from MOS to EOS."""
+
+    config_patterns = [
         (r"interface ap1/(.*)", r"interface ap\1"),
         (r"l1 source interface ap1/(.*)", r"source ap\1"),
         (r"l1 source interface ap(.*)", "CAN NOT TRANSLATE"),
         (r"l1 source interface (.*)", r"source \1"),
-        (
-            r"l1 source mac",
-            r"source mac",
-        ),
+        (r"l1 source mac", r"source mac"),
         (r"no l1 source", r"no source"),
         (r"bash sudo cortina", "CAN NOT TRANSLATE"),
         (r"traffic-loopback source network device phy", r"loopback internal"),
@@ -51,19 +107,12 @@ def _eos_to_mos_translator(cmds):
         (r"no traffic-loopback", r"no loopback"),
     ]
 
-    commands = []
-    for command in _splitcmds(cmds):
-        for (before, after) in translations:
-            matcher = re.match(before, command)
-            if matcher:
-                commands.append(matcher.expand(after))
-                break
-        else:
-            # If we don't get a match, just append the original.
-            commands.append(command)
-    if commands != cmds:
-        logging.debug("Before: %s, After: %s", repr(cmds), repr(commands))
-    return commands
+    # MOS EAPI calls are camel cased
+    # standardize to EOS snake case
+    key_pattern = re.compile(r"(?<!^)(?=[A-Z])")
+
+    def translate_key(self, k):
+        return "/".join(re.sub(self.key_pattern, "_", w).lower() for w in k.split("/"))
 
 
 class CLI(px.CLI):
@@ -97,11 +146,11 @@ class EAPI:
         This can be used, for example, to hide syntax differences between devices with different CLIs.
 
         Args:
-            translator (Callable): The function to be called before on each command.
+            translator (Class): The class which implements cli and json translator functions.
         """
         self.translator = translator
 
-    def sendcmd(self, cmd, timeout=None):
+    def sendcmd(self, cmd, timeout=None, translate=True):
         """Returns the deserialized JSON result of running a command via the CAPI/eAPI.
 
         Args:
@@ -109,13 +158,19 @@ class EAPI:
         """
         if timeout:
             logging.debug("Timeout parameter is ignored by EAPI -- timeout=%f", timeout)
-        if self.translator:
-            cmds = self.translator(cmd)
+        if self.translator and translate:
+            cmds = self.translator.cli(cmd)
         else:
             cmds = [cmd]
-        return self._conn.execute(cmds)["result"][0]
 
-    def sendcmds(self, cmds, timeout=None):
+        data = self._conn.execute(cmds)["result"][0]
+
+        if self.translator and translate:
+            return self.translator.json(data)
+
+        return data
+
+    def sendcmds(self, cmds, timeout=None, translate=True):
         """Returns a list of results of running multiple commands via the CAPI/eAPI.
 
         Args:
@@ -124,9 +179,14 @@ class EAPI:
         if timeout:
             logging.debug("Timeout parameter is ignored by EAPI -- timeout=%f", timeout)
         if self.translator:
-            cmds = self.translator(cmds)
+            cmds = self.translator.cli(cmds)
         logging.info(pprint.pformat(cmds))
-        return self._conn.execute(_splitcmds(cmds))["result"]
+        data = self._conn.execute(_splitcmds(cmds))["result"]
+
+        if self.translator and translate:
+            return [self.translator.json(item) for item in data]
+
+        return data
 
 
 @pytest.fixture(scope="session", name="eapi_enabled")
@@ -170,7 +230,7 @@ def eapi_enabled_fixture(wait_for):
                 eapi = EAPI(hostname=hostname, transport=transport)
                 eapi.sendcmd("show version")
                 if ssh.cli_flavor == "mos":
-                    eapi.set_translator(_eos_to_mos_translator)
+                    eapi.set_translator(MosTranslator())
                 return eapi
             except (pyeapi.eapilib.ConnectionError, ConnectionRefusedError):
                 return None

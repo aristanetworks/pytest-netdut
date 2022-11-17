@@ -174,6 +174,50 @@ def test_mytest(my_test_harness):
     logging.info("Running my test here")
 ```
 
+### Translations
+
+In order to reduce test code verbosity and complexity a translator class provides a way to standardize tests to a particular OS.
+Both CLI commands and results are standardized to EOS by default.
+
+A particular test can be written with EOS CLI and be run on MOS as well.
+Consider the `l1 source` command which differs between EOS and MOS:
+
+```python
+@pytest.fixture
+def l1_connect(dut):
+    if dut.ssh.cli_flavor == "eos":
+        dut.eapi.sendcmds(["enable",
+                              "configure",
+                                  "interface Ethernet10",
+                                      "l1 source interface Ethernet12"])
+    elif dut.ssh.cli_flavor == "mos":
+        dut.eapi.sendcmds(["enable",
+                              "configure",
+                                  "interface Ethernet10",
+                                      "source Ethernet12"])
+```
+
+which can be reduced to:
+
+```python
+@pytest.fixture
+def l1_connect(dut):
+    dut.eapi.sendcmds(["enable",
+                        "configure",
+                            "interface Ethernet10",
+                                "l1 source interface Ethernet12"])
+```
+
+The translator will try to find a match for each command in the predefined list of regex configuration patterns.
+
+The translator will also process return values; MOS EAPI result keys are camelCased and the translator will convert all keys
+to snake_case.
+
+The translator has a predefined set of translations which can be extended by subclassing the Translator class and overriding `config_patterns`.
+Return values are processed by the `translate_key` function which must be defined in the subclass.
+
+Set the new translator class via `eapi.set_translator(<class instance>)`. 
+
 Contributing
 ------------
 This project is under active use and development. We would appreciate help to improve it,
