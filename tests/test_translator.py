@@ -49,9 +49,9 @@ def test_eapi_translator(mocker, mock_pyeapi):
     eapi.set_translator(pytest_netdut.wrappers.MosTranslator())
 
     result = eapi.sendcmd(["one_command"])
-    assert "app_name" in result
+    assert "appName" in result
 
     result = eapi.sendcmds(["one_command", "two_command"])
-    assert "app_name" in result[0]
+    assert "appName" in result[0]
     assert "app_name" in result[1]
     assert "Application is already running" in result[2]
