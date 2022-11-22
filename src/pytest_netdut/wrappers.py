@@ -86,8 +86,9 @@ class Translator:
         Args:
             data (str | dict): Results are typically a string or a dictionary.
         """
-        if isinstance(data, dict):
-            return self.translate_json_keys(data)
+        # FIXME. Disable for now
+        # if isinstance(data, dict):
+        #    return self.translate_json_keys(data)
         return data
 
 
