@@ -152,10 +152,10 @@ def create(name) -> Callable:
         
     dut = fixtures[0]
     ssh = fixtures[6]
-    dut.is_eos = ssh.cli_flavor == "eos"
-    dut.is_mos = ssh.cli_flavor == "mos"
+    dut.is_eos = ssh().cli_flavor == "eos"
+    dut.is_mos = ssh().cli_flavor == "mos"
 
-    return fixtures[0]
+    return dut
 
 
 @pytest.fixture(scope="session")
