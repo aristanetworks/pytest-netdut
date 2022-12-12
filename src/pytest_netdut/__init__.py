@@ -149,6 +149,10 @@ def create(name) -> Callable:
 
     for fixture in fixtures:
         globals()[fixture.__name__] = fixture
+        
+    dut = fixtures[0]
+    dut.is_eos = dut.ssh.cli_flavor == "eos"
+    dut.is_mos = dut.ssh.cli_flavor == "mos"
 
     return fixtures[0]
 
