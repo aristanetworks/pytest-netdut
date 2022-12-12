@@ -33,11 +33,11 @@ def create_dut_fixture(name):
             
             @property
             def is_eos(self):
-                return self.ssh.cli_flavor = "eos"
+                return self.ssh.cli_flavor == "eos"
             
             @property
             def is_mos(self):
-                return self.ssh.cli_flavor = "mos"
+                return self.ssh.cli_flavor == "mos"
 
         yield Dut()
 
