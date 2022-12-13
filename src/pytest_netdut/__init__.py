@@ -149,7 +149,7 @@ def create(name) -> Callable:
 
     for fixture in fixtures:
         globals()[fixture.__name__] = fixture
-        
+
     dut = fixtures[0]
 
     return dut
