@@ -27,7 +27,6 @@ def create_dut_fixture(name):
         skipper(request.node)
 
         class Dut:
-
             def __getattr__(self, attr):
                 return request.getfixturevalue(f"{name}_{attr}")
 
