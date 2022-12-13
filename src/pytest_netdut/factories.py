@@ -27,14 +27,13 @@ def create_dut_fixture(name):
         skipper(request.node)
 
         class Dut:
-            
             def __getattr__(self, attr):
                 return request.getfixturevalue(f"{name}_{attr}")
-            
+
             @property
             def is_eos(self):
                 return self.ssh.cli_flavor == "eos"
-            
+
             @property
             def is_mos(self):
                 return self.ssh.cli_flavor == "mos"
