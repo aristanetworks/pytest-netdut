@@ -61,4 +61,4 @@ def test_sendcmds(dut, sleeper_daemon, wait_for):
     assert daemon_info["running"]
 
     # Print the PID, so we can show we really created a daemon.
-    logging.info("Daemon was started and the PID is {}".format(daemon_info['pid']))
+    logging.info(f"Daemon was started and the PID is {daemon_info['pid']}")
