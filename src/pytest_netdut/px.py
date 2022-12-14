@@ -293,9 +293,7 @@ class CLI(Shell):
 
             # Determine device generation
             try:
-                output = self.sendcmd(
-                    "bash python -m hal property chassis chassis_gen"
-                )
+                output = self.sendcmd("bash python -m hal property chassis chassis_gen")
                 self.device_generation = int(output.strip())
             except Exception:  # pylint: disable=broad-except
                 plm_ver = self.sendcmd("bash i2cget -f -y 1 0x77 0x8 w").strip()
