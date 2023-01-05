@@ -1,0 +1,3 @@
+[LOGGING]
+
+disable=consider-using-f-string

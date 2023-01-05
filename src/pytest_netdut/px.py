@@ -15,8 +15,6 @@
 # -
 # -------------------------------------------------------------------------------
 
-# pylint: disable=consider-using-f-string
-
 from __future__ import absolute_import, print_function
 
 import os
@@ -202,52 +200,119 @@ class CLI(Shell):
         self.serial = None
         self.micro_version = None
 
+    def _login_prompt(self, timeout):
+        time0 = time.time()
+        i = 0
+        while True:
+            if time.time() - time0 > timeout:
+                raise TIMEOUT("failed to login")
+
+            index = self.expect(
+                [
+                    TIMEOUT,
+                    self.login_prompt_re_mos,
+                    self.login_prompt_re_eos,
+                    self.login_prompt_re_aboot,
+                ],
+                timeout=2,
+            )
+
+            print(" -- Got a login prompt index of {} -- ".format(index))
+
+            if index == 1:
+                self.cli_flavor = "mos"
+                break
+
+            if index == 2:
+                self.cli_flavor = "eos"
+                break
+
+            if index == 3:
+                self.cli_flavor = "aboot"
+                break
+
+            # Note that blindly sending EOFs and INTRs may break
+            # some of the init scripts if the device is rebooting.
+            if i % 2 == 0:
+                self.sendeof()
+            else:
+                pexpect.spawn.sendintr(self)
+
+            i += 1
+
+        if self.cli_flavor != "aboot":
+            self.sendline(self.username)
+            self.expect(self.username + "(\r)?\r\n", timeout=10)
+        else:
+            self.sendline()
+
+    def _login_setup_os(self, timeout):
+        # Sendcmd via Shell directly to avoid messing with cli_timeouts
+        # since we do not yet know for sure what OS the device is running.
+        show_version = self.sendcmd_simple("show version", timeout=10)
+        matcher = re.search("Serial number:[ \t]*(.*)", show_version)
+        if matcher:
+            self.serial = matcher.group(1)
+
+        matcher = re.search(
+            r"System management controller version: (\d+)", show_version
+        )
+        if matcher:
+            self.micro_version = matcher.group(1)
+
+        # More reliably determine the CLI flavor
+        # MOS does not have a 'Hardware version' field in "show version'
+        matcher = re.search("Hardware version:", show_version)
+        if matcher:
+            self.cli_flavor = "eos"
+        else:
+            self.cli_flavor = "mos"
+
+        # Check if previous tests left a password set
+        try:
+            self.sendcmd_simple("enable")
+        except TIMEOUT:
+            self.expect("Password:", timeout=10)
+            self.sendline("opensesame")  # This is used in some tests.
+            output = self.prompt(timeout=timeout, reset=1)
+            self.process_output(output)
+
+        self.sendcmd_simple(
+            "bash echo ===> px Determined the {} CLI flavor".format(self.cli_flavor)
+        )
+
+        if self.cli_flavor == "mos":
+            self.sendcmd_simple("set debug 1", timeout=10)
+
+            # Set default cli timeout which
+            # is the 2x the command timeout
+            if self.enable_cli_timeout:
+                self.set_cli_timeout()
+
+            # Determine device generation
+            try:
+                output = self.sendcmd("bash python -m hal property chassis chassis_gen")
+                self.device_generation = int(output.strip())
+            except Exception:  # pylint: disable=broad-except
+                plm_ver = self.sendcmd("bash i2cget -f -y 1 0x77 0x8 w").strip()
+                self.device_generation = 1 if int(plm_ver, 16) < 0x200 else 2
+
+            # If Gen2 device, determine PLM watchdog support by
+            # querying register PLM_VER_PATCH(0x7e)
+            try:
+                if self.device_generation == 2:
+                    plm_ver_patch = self.sendcmd(
+                        "bash i2cget -f -y 1 0x77 0x7e b"
+                    ).strip()
+                    self.plm_wd_supported = plm_ver_patch != "0xdb"
+            except Exception:  # pylint: disable=broad-except
+                pass
+
+        self.sendcmd("show clock", timeout=timeout)
+
     def login(self, timeout=30):  # noqa: MC0001
         if self.cmd != "ssh":
-            time0 = time.time()
-            i = 0
-            while True:
-                if time.time() - time0 > timeout:
-                    raise TIMEOUT("failed to login")
-
-                index = self.expect(
-                    [
-                        TIMEOUT,
-                        self.login_prompt_re_mos,
-                        self.login_prompt_re_eos,
-                        self.login_prompt_re_aboot,
-                    ],
-                    timeout=2,
-                )
-
-                print(" -- Got a login prompt index of {} -- ".format(index))
-
-                if index == 1:
-                    self.cli_flavor = "mos"
-                    break
-
-                if index == 2:
-                    self.cli_flavor = "eos"
-                    break
-
-                if index == 3:
-                    self.cli_flavor = "aboot"
-                    break
-
-                # Note that blindly sending EOFs and INTRs may break
-                # some of the init scripts if the device is rebooting.
-                if i % 2 == 0:
-                    self.sendeof()
-                else:
-                    pexpect.spawn.sendintr(self)
-
-                i += 1
-
-            if self.cli_flavor != "aboot":
-                self.sendline(self.username)
-                self.expect(self.username + "(\r)?\r\n", timeout=10)
-            else:
-                self.sendline()
+            self._login_prompt(timeout)
 
         print("\n -- Logged in. Sending password, etc. -- \n")
 
@@ -300,70 +365,7 @@ class CLI(Shell):
 
         # Do standard setup for MOS/EOS.
         if self.cli_flavor != "aboot" and self.username != "root":
-            # Sendcmd via Shell directly to avoid messing with cli_timeouts
-            # since we do not yet know for sure what OS the device is running.
-            show_version = self.sendcmd_simple("show version", timeout=10)
-            matcher = re.search("Serial number:[ \t]*(.*)", show_version)
-            if matcher:
-                self.serial = matcher.group(1)
-
-            matcher = re.search(
-                r"System management controller version: (\d+)", show_version
-            )
-            if matcher:
-                self.micro_version = matcher.group(1)
-
-            # More reliably determine the CLI flavor
-            # MOS does not have a 'Hardware version' field in "show version'
-            matcher = re.search("Hardware version:", show_version)
-            if matcher:
-                self.cli_flavor = "eos"
-            else:
-                self.cli_flavor = "mos"
-
-            # Check if previous tests left a password set
-            try:
-                self.sendcmd_simple("enable")
-            except TIMEOUT:
-                self.expect("Password:", timeout=10)
-                self.sendline("opensesame")  # This is used in some tests.
-                output = self.prompt(timeout=timeout, reset=1)
-                self.process_output(output)
-
-            self.sendcmd_simple(
-                "bash echo ===> px Determined the {} CLI flavor".format(self.cli_flavor)
-            )
-
-            if self.cli_flavor == "mos":
-                self.sendcmd_simple("set debug 1", timeout=10)
-
-                # Set default cli timeout which
-                # is the 2x the command timeout
-                if self.enable_cli_timeout:
-                    self.set_cli_timeout()
-
-                # Determine device generation
-                try:
-                    output = self.sendcmd(
-                        "bash python -m hal property chassis chassis_gen"
-                    )
-                    self.device_generation = int(output.strip())
-                except Exception:  # pylint: disable=broad-except
-                    plm_ver = self.sendcmd("bash i2cget -f -y 1 0x77 0x8 w").strip()
-                    self.device_generation = 1 if int(plm_ver, 16) < 0x200 else 2
-
-                # If Gen2 device, determine PLM watchdog support by
-                # querying register PLM_VER_PATCH(0x7e)
-                try:
-                    if self.device_generation == 2:
-                        plm_ver_patch = self.sendcmd(
-                            "bash i2cget -f -y 1 0x77 0x7e b"
-                        ).strip()
-                        self.plm_wd_supported = plm_ver_patch != "0xdb"
-                except Exception:  # pylint: disable=broad-except
-                    pass
-
-            self.sendcmd("show clock", timeout=timeout)
+            self._login_setup_os(timeout)
 
         if self.cmd != "ssh":
             # EOS and Aboot wrap lines at 80 chars on the console by default
