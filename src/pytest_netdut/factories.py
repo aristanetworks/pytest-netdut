@@ -144,6 +144,21 @@ def create_ssh_fixture(name):
 
     return _ssh
 
+def create_console_fixture(name):
+    @pytest.fixture(scope="session", name=f"{name}_console")
+    def _console(request):
+        try:
+            console = CLI(request.getfixturevalue(f'{name}_console_url'))
+            console.login()
+        except Exception as exc:
+            logging.error("Failed to create ssh fixture and log in")
+            raise exc
+        if console.cli_flavor == "mos":
+            console.sendcmd("enable")
+        yield console
+
+    return _console
+
 
 def create_xapi_fixture(name):
     @pytest.fixture(scope="session", name=f"{name}_x")
