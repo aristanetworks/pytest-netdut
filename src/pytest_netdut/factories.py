@@ -61,6 +61,13 @@ def create_hostname_fixture(name):
 
     return _hostname
 
+def create_console_url_fixture(name):
+    @pytest.fixture(scope="session", name=f"{name}_console_url")
+    def _hostname(request):
+        yield request.getfixturevalue(f"{name}_info")["console_url"]
+
+    return _hostname
+
 
 def create_skipper_fixture(name):
     @pytest.fixture(scope="session", name=f"{name}_skipper")
@@ -148,7 +155,7 @@ def create_console_fixture(name):
     @pytest.fixture(scope="session", name=f"{name}_console")
     def _console(request):
         try:
-            console_url = request.getfixturevalue(f"{name}_info")["console_url"]
+            console_url = request.getfixturevalue(f"{name}_console_url")
             console = CLI(console_url)
             console.login()
         except Exception as exc:
