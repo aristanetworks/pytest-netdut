@@ -148,10 +148,11 @@ def create_console_fixture(name):
     @pytest.fixture(scope="session", name=f"{name}_console")
     def _console(request):
         try:
-            console = CLI(request.getfixturevalue(f'{name}_console_url'))
+            console_url = request.getfixturevalue(f"{name}_info")["console_url"]
+            console = CLI(console_url)
             console.login()
         except Exception as exc:
-            logging.error("Failed to create ssh fixture and log in")
+            logging.error("Failed to create console fixture and log in")
             raise exc
         if console.cli_flavor == "mos":
             console.sendcmd("enable")
