@@ -149,6 +149,7 @@ class CLI(Shell):
         timeout=30,
         enable_cli_timeout=False,
         cli_flavor="mos",
+        ignore_encoding_errors=False,
         extra_args=[],
     ):
         o = six.moves.urllib.parse.urlparse(url)  # pylint: disable=invalid-name
@@ -186,6 +187,7 @@ class CLI(Shell):
             timeout,
             dimensions=(60, 500),
             encoding="utf-8" if six.text_type == str else None,
+            codec_errors='ignore' if six.text_type == str else 'strict'
         )
         self.logfile_read = sys.stdout
         self.delayafterterminate = 1
