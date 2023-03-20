@@ -63,10 +63,10 @@ def create_hostname_fixture(name):
 
 def create_console_url_fixture(name):
     @pytest.fixture(scope="session", name=f"{name}_console_url")
-    def _hostname(request):
+    def _console_url(request):
         yield request.getfixturevalue(f"{name}_info")["console_url"]
 
-    return _hostname
+    return _console_url
 
 
 def create_skipper_fixture(name):
