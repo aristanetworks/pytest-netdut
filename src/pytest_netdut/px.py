@@ -187,7 +187,7 @@ class CLI(Shell):
             timeout,
             dimensions=(60, 500),
             encoding="utf-8" if six.text_type == str else None,
-            codec_errors='ignore' if six.text_type == str else 'strict'
+            codec_errors="ignore" if ignore_encoding_errors else "strict",
         )
         self.logfile_read = sys.stdout
         self.delayafterterminate = 1
