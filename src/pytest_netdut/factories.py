@@ -155,10 +155,19 @@ def create_console_fixture(name):
     @pytest.fixture(scope="session", name=f"{name}_console")
     def _console(request):
         try:
+            class _CLI_wrapper(CLI):
+                def __init__(self, *args, **kwargs):
+                    self._reinit_args = args
+                    self._reinit_kwargs = kwargs
+                    CLI.__init__(self, *args, **kwargs)
+
+                def re_init(self):
+                    CLI.__init__(self, *self._reinit_args, **self._reinit_kwargs)
+
             console_url = request.getfixturevalue(f"{name}_console_url")
             # Ignore encoding errors for the console -- various conditions
             # cause non-UTF-8 characters to be received.
-            console = CLI(console_url, ignore_encoding_errors=True)
+            console = _CLI_wrapper(console_url, ignore_encoding_errors=True)
             console.login()
         except Exception as exc:
             logging.error("Failed to create console fixture and log in")
