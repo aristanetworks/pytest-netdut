@@ -162,6 +162,7 @@ def create_console_fixture(name):
                     CLI.__init__(self, *args, **kwargs)
 
                 def re_init(self):
+                    self.close()
                     CLI.__init__(self, *self._reinit_args, **self._reinit_kwargs)
 
             console_url = request.getfixturevalue(f"{name}_console_url")
