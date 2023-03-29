@@ -135,13 +135,22 @@ def create_softened_fixture(name):
 
     return _softened
 
+class _CLI_wrapper(CLI):
+    def __init__(self, *args, **kwargs):
+        self._reinit_args = args
+        self._reinit_kwargs = kwargs
+        CLI.__init__(self, *args, **kwargs)
+        self.login()
+
+    def close_and_re_init(self):
+        self.close()
+        return _CLI_wrapper(*self._reinit_args, **self._reinit_kwargs)
 
 def create_ssh_fixture(name):
     @pytest.fixture(scope="session", name=f"{name}_ssh")
     def _ssh(request):
         try:
-            ssh = CLI(f"ssh://{request.getfixturevalue(f'{name}_hostname')}")
-            ssh.login()
+            ssh = _CLI_wrapper(f"ssh://{request.getfixturevalue(f'{name}_hostname')}")
         except Exception as exc:
             logging.error("Failed to create ssh fixture and log in")
             raise exc
@@ -154,22 +163,11 @@ def create_ssh_fixture(name):
 def create_console_fixture(name):
     @pytest.fixture(scope="session", name=f"{name}_console")
     def _console(request):
-        class _CLI_wrapper(CLI):
-            def __init__(self, *args, **kwargs):
-                self._reinit_args = args
-                self._reinit_kwargs = kwargs
-                CLI.__init__(self, *args, **kwargs)
-
-            def close_and_re_init(self):
-                self.close()
-                return _CLI_wrapper(*self._reinit_args, **self._reinit_kwargs)
-
         try:
             console_url = request.getfixturevalue(f"{name}_console_url")
             # Ignore encoding errors for the console -- various conditions
             # cause non-UTF-8 characters to be received.
             console = _CLI_wrapper(console_url, ignore_encoding_errors=True)
-            console.login()
         except Exception as exc:
             logging.error("Failed to create console fixture and log in")
             raise exc
