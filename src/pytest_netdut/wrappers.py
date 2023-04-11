@@ -68,7 +68,7 @@ class Translator:
         """
         commands = []
         for command in _splitcmds(cmds):
-            for (before, after) in self.config_patterns:
+            for before, after in self.config_patterns:
                 matcher = re.match(before, command)
                 if matcher:
                     commands.append(matcher.expand(after))
