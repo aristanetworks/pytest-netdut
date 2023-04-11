@@ -21,7 +21,7 @@ from .wrappers import CLI, xapi
 
 
 def create_dut_fixture(name):
-    @pytest.fixture(name=f"{name}")
+    @pytest.fixture(scope="session", name=f"{name}")
     def _dut(request):
         skipper = request.getfixturevalue(f"{name}_skipper")
         skipper(request.node)
