@@ -19,6 +19,8 @@ import re
 import pytest
 from .wrappers import CLI, xapi
 
+logger = logging.getLogger(__name__)
+
 
 def create_dut_fixture(name):
     @pytest.fixture(name=f"{name}")
@@ -77,9 +79,7 @@ def create_skipper_fixture(name):
                     pattern = marker.args[0]
                     sku = request.getfixturevalue(f"{name}_sku")
                     if not re.search(pattern, sku):
-                        pytest.skip(
-                            f"Skipped on this SKU: {sku} (only runs on {pattern})"
-                        )
+                        pytest.skip(f"Skipped on this SKU: {sku} (only runs on {pattern})")
 
                 elif marker.name == "skip_device_type":
                     pattern = marker.args[0]
