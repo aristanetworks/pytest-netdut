@@ -70,12 +70,15 @@ def test_showver(dut):
 
 """
 from typing import Callable
+import logging
 import pytest
 from . import factories
 from .utils import wait_for
 from .wrappers import CLI, EAPI, eapi_enabled_fixture, xapi
 
 __all__ = ["CLI", "EAPI", "create", "eapi_enabled_fixture", "wait_for", "xapi"]
+
+logger = logging.getLogger(__name__)
 
 
 def pytest_configure(config):
@@ -148,7 +151,9 @@ def create(name) -> Callable:
     ]
 
     for fixture in fixtures:
-        globals()[fixture.__name__] = fixture
+        logger.info(f"Registering {fixture} as a global")
+        #import pdb; pdb.set_trace()
+        globals()[fixture._pytestfixturefunction.name] = fixture
 
     return fixtures[0]
 
@@ -170,5 +175,5 @@ def dut_info(pytestconfig) -> dict:
     assert info["console_url"] or info["hostname"], "You must specify a device"
     return info
 
-
+logger.info("Registering DUT")
 create("dut")

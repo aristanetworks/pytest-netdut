@@ -19,9 +19,10 @@ import re
 import pytest
 from .wrappers import CLI, xapi
 
+logger = logging.getLogger(__name__)
 
 def create_dut_fixture(name):
-    @pytest.fixture(scope="session", name=f"{name}")
+    @pytest.fixture(name=f"{name}")
     def _dut(request):
         skipper = request.getfixturevalue(f"{name}_skipper")
         skipper(request.node)
