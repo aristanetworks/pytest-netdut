@@ -151,8 +151,6 @@ def create(name) -> Callable:
     ]
 
     for fixture in fixtures:
-        logger.info(f"Registering {fixture} as a global")
-        #import pdb; pdb.set_trace()
         globals()[fixture._pytestfixturefunction.name] = fixture
 
     return fixtures[0]
@@ -175,5 +173,5 @@ def dut_info(pytestconfig) -> dict:
     assert info["console_url"] or info["hostname"], "You must specify a device"
     return info
 
-logger.info("Registering DUT")
+logger.debug("Registering `dut`")
 create("dut")
