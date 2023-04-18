@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
 
     steps:
       - uses: actions/checkout@v3
@@ -24,10 +24,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pytest tox
-      
+
       - name: Test using tox
         run: |
-          tox -s -e "py37,py38,py39,py310"
+          tox -s -e "py37,py38,py39,py310,py311"
 
 #      - name: Test Summary
 #        uses: test-summary/action@v1
@@ -35,7 +35,7 @@ jobs:
 #          paths: |
 #            test-reports/*.xml
 #        if: always()
-  
+
   lint:
     runs-on: ubuntu-latest
 
@@ -45,7 +45,7 @@ jobs:
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.11"
 
       - name: Install dependencies
         run: |
