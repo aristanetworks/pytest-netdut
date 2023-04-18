@@ -73,7 +73,7 @@ class Shell(spawn):
         if not isinstance(self.after, six.string_types) or not self._prompt.match(
             self.after
         ):
-            raise RuntimeError(
+            raise Exception(
                 "Cannot find prompt. Refusing to send command.",
                 self.after,
                 self._prompt.pattern,
@@ -337,7 +337,7 @@ class CLI(Shell):
                     ["Traceback", "Login incorrect", "Password:"], timeout=10
                 )
                 if index == 0:
-                    raise RuntimeError(  # pylint: disable=raise-missing-from
+                    raise Exception(  # pylint: disable=raise-missing-from
                         "CLI is busted, try logging in as root!"
                     )
                 if index == 1:
@@ -351,7 +351,7 @@ class CLI(Shell):
                     self.sendline("opensesame")  # This is used in some tests.
                     self.expect("Last login:.*\r\n", timeout=10)
                 self.expect("Traceback", timeout=10)
-                raise RuntimeError(  # pylint: disable=raise-missing-from
+                raise Exception(  # pylint: disable=raise-missing-from
                     "CLI is busted, try logging in as root!"
                 )
             except TIMEOUT:
@@ -408,7 +408,7 @@ class CLI(Shell):
                 else:
                     self.sendcmd_simple("no timeout")
             else:
-                raise RuntimeError("Not at CLI prompt")
+                raise Exception("Not at CLI prompt")
 
     def sendcmd_simple(self, cmd="", timeout=-1, reset=0, wait=True):
         if wait:
