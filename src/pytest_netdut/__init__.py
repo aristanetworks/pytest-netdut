@@ -173,5 +173,6 @@ def dut_info(pytestconfig) -> dict:
     assert info["console_url"] or info["hostname"], "You must specify a device"
     return info
 
+
 logger.debug("Registering `dut`")
 create("dut")
