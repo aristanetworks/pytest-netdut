@@ -91,9 +91,7 @@ def pytest_configure(config):
     # register markers
     config.addinivalue_line("markers", "eos: mark a test as eos only.")
     config.addinivalue_line("markers", "mos: mark a test as mos only.")
-    config.addinivalue_line(
-        "markers", "skip_device_type: mark a test as excluding a particular SKU regex."
-    )
+    config.addinivalue_line("markers", "skip_device_type: mark a test as excluding a particular SKU regex.")
     config.addinivalue_line(
         "markers",
         "only_device_type: mark a test as only running on a particular SKU regex.",
