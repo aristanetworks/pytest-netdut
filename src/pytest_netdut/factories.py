@@ -135,16 +135,54 @@ def create_softened_fixture(name):
 
     return _softened
 
-class _CLI_wrapper(CLI):
+class _CLI_wrapper(object):
+    _cli = None
+
     def __init__(self, *args, **kwargs):
         self._reinit_args = args
         self._reinit_kwargs = kwargs
-        CLI.__init__(self, *args, **kwargs)
+        self.close_and_re_init()
         self.login()
 
     def close_and_re_init(self):
-        self.close()
-        return _CLI_wrapper(*self._reinit_args, **self._reinit_kwargs)
+        if self._cli:
+            del self._cli
+        self._cli = _CLI_wrapper(*self._reinit_args, **self._reinit_kwargs)
+
+    def login(self, *args, **kwargs):
+        return self._cli.login(*args, **kwargs)
+
+    def set_cli_timeout(self, *args, **kwargs):
+        return self._cli.set_cli_timeout(*args, **kwargs)
+
+    def sendcmd_simple(self, *args, **kwargs):
+        return self._cli.sendcmd_simple(*args, **kwargs)
+
+    def sendcmd(self, *args, **kwargs):
+        return self._cli.sendcmd(*args, **kwargs)
+
+    def sendcmds(self, *args, **kwargs):
+        return self._cli.sendcmds(*args, **kwargs)
+
+    @property
+    def cli_flavor(self):
+        return self._cli.cli_flavor
+
+    @property
+    def device_generation(self):
+        return self._cli.device_generation
+
+    @property
+    def plm_wd_supported(self):
+        return self._cli.plm_wd_supported
+
+    @property
+    def serial(self):
+        return self._cli.serial
+
+    @property
+    def micro_version(self):
+        return self._cli.micro_version
 
 def create_ssh_fixture(name):
     @pytest.fixture(scope="session", name=f"{name}_ssh")
