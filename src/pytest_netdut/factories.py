@@ -147,7 +147,7 @@ class _CLI_wrapper(object):
     def close_and_re_init(self):
         if self._cli:
             del self._cli
-        self._cli = _CLI_wrapper(*self._reinit_args, **self._reinit_kwargs)
+        self._cli = CLI(*self._reinit_args, **self._reinit_kwargs)
 
     def login(self, *args, **kwargs):
         return self._cli.login(*args, **kwargs)
@@ -205,7 +205,7 @@ def create_console_fixture(name):
             console_url = request.getfixturevalue(f"{name}_console_url")
             # Ignore encoding errors for the console -- various conditions
             # cause non-UTF-8 characters to be received.
-            console = CLI(console_url, ignore_encoding_errors=True)
+            console = _CLI_wrapper(console_url, ignore_encoding_errors=True)
         except Exception as exc:
             logging.error("Failed to create console fixture and log in")
             raise exc
