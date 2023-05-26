@@ -205,7 +205,7 @@ def create_console_fixture(name):
             console_url = request.getfixturevalue(f"{name}_console_url")
             # Ignore encoding errors for the console -- various conditions
             # cause non-UTF-8 characters to be received.
-            console = _CLI_wrapper(console_url, ignore_encoding_errors=True)
+            console = CLI(console_url, ignore_encoding_errors=True)
         except Exception as exc:
             logging.error("Failed to create console fixture and log in")
             raise exc
