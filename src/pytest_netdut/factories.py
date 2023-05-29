@@ -149,20 +149,39 @@ class _CLI_wrapper(object):
             del self._cli
         self._cli = CLI(*self._reinit_args, **self._reinit_kwargs)
 
+    def close(self, *args, **kwargs):
+        return self._cli.close(*args, **kwargs)
+
     def login(self, *args, **kwargs):
         return self._cli.login(*args, **kwargs)
 
     def set_cli_timeout(self, *args, **kwargs):
         return self._cli.set_cli_timeout(*args, **kwargs)
 
+    def send(self, *args, **kwargs):
+        return self._cli.send(*args, **kwargs)
+
     def sendcmd_simple(self, *args, **kwargs):
         return self._cli.sendcmd_simple(*args, **kwargs)
+
+    def sendcmd_unchecked(self, *args, **kwargs):
+        return self._cli.sendcmd_unchecked(*args, **kwargs)
 
     def sendcmd(self, *args, **kwargs):
         return self._cli.sendcmd(*args, **kwargs)
 
     def sendcmds(self, *args, **kwargs):
         return self._cli.sendcmds(*args, **kwargs)
+
+    def expect(self, *args, **kwargs):
+        return self._cli.expect(*args, **kwargs)
+
+    def sendline(self, *args, **kwargs):
+        return self._cli.sendline(*args, **kwargs)
+
+    def sendintr(self, *args, **kwargs):
+        return self._cli.sendintr(*args, **kwargs)
+
 
     @property
     def cli_flavor(self):
@@ -183,6 +202,19 @@ class _CLI_wrapper(object):
     @property
     def micro_version(self):
         return self._cli.micro_version
+
+    @property
+    def username(self):
+        return self._cli.username
+
+    @property
+    def password(self):
+        return self._cli.password
+
+    @property
+    def before(self):
+        return self._cli.before
+
 
 def create_ssh_fixture(name):
     @pytest.fixture(scope="session", name=f"{name}_ssh")
