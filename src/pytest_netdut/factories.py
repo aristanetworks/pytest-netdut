@@ -187,6 +187,10 @@ class _CLI_wrapper(object):
     def cli_flavor(self):
         return self._cli.cli_flavor
 
+    @cli_flavor.setter
+    def cli_flavor(self, value):
+        self._cli.cli_flavor = value
+
     @property
     def device_generation(self):
         return self._cli.device_generation
@@ -194,6 +198,10 @@ class _CLI_wrapper(object):
     @property
     def plm_wd_supported(self):
         return self._cli.plm_wd_supported
+
+    @plm_wd_supported.setter
+    def plm_wd_supported(self, value):
+        self._cli.plm_wd_supported = value
 
     @property
     def serial(self):
