@@ -142,12 +142,12 @@ class _CLI_wrapper(object):
         self._reinit_args = args
         self._reinit_kwargs = kwargs
         self.close_and_re_init()
-        self.login()
 
     def close_and_re_init(self):
         if self._cli:
             del self._cli
         self._cli = CLI(*self._reinit_args, **self._reinit_kwargs)
+        self.login()
 
     def close(self, *args, **kwargs):
         return self._cli.close(*args, **kwargs)
