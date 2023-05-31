@@ -63,6 +63,7 @@ def create_hostname_fixture(name):
 
     return _hostname
 
+
 def create_console_url_fixture(name):
     @pytest.fixture(scope="session", name=f"{name}_console_url")
     def _console_url(request):
@@ -135,7 +136,8 @@ def create_softened_fixture(name):
 
     return _softened
 
-class _CLI_wrapper(object):
+
+class _CLI_wrapper:
     _cli = None
 
     def __init__(self, *args, **kwargs):
@@ -182,7 +184,6 @@ class _CLI_wrapper(object):
     def sendintr(self, *args, **kwargs):
         return self._cli.sendintr(*args, **kwargs)
 
-
     @property
     def cli_flavor(self):
         return self._cli.cli_flavor
@@ -223,6 +224,10 @@ class _CLI_wrapper(object):
     def before(self):
         return self._cli.before
 
+    @property
+    def args(self):
+        return self._cli.args
+
 
 def create_ssh_fixture(name):
     @pytest.fixture(scope="session", name=f"{name}_ssh")
@@ -237,6 +242,7 @@ def create_ssh_fixture(name):
         yield ssh
 
     return _ssh
+
 
 def create_console_fixture(name):
     @pytest.fixture(scope="session", name=f"{name}_console")
