@@ -141,11 +141,13 @@ def create(name) -> Callable:
         factories.create_dut_fixture(name),
         factories.create_eapi_fixture(name),
         factories.create_hostname_fixture(name),
+        factories.create_console_url_fixture(name),
         factories.create_skipper_fixture(name),
         factories.create_sku_fixture(name),
         factories.create_softened_fixture(name),
         factories.create_ssh_fixture(name),
         factories.create_xapi_fixture(name),
+        factories.create_console_fixture(name),
     ]
 
     for fixture in fixtures:

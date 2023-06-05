@@ -64,6 +64,14 @@ def create_hostname_fixture(name):
     return _hostname
 
 
+def create_console_url_fixture(name):
+    @pytest.fixture(scope="session", name=f"{name}_console_url")
+    def _console_url(request):
+        yield request.getfixturevalue(f"{name}_info")["console_url"]
+
+    return _console_url
+
+
 def create_skipper_fixture(name):
     @pytest.fixture(scope="session", name=f"{name}_skipper")
     def _skipper(request):
@@ -129,12 +137,103 @@ def create_softened_fixture(name):
     return _softened
 
 
+class _CLI_wrapper:
+    _cli = None
+
+    def __init__(self, *args, **kwargs):
+        self._reinit_args = args
+        self._reinit_kwargs = kwargs
+        self.close_and_re_init()
+
+    def close_and_re_init(self):
+        if self._cli:
+            del self._cli
+        self._cli = CLI(*self._reinit_args, **self._reinit_kwargs)
+        self.login()
+
+    def close(self, *args, **kwargs):
+        return self._cli.close(*args, **kwargs)
+
+    def login(self, *args, **kwargs):
+        return self._cli.login(*args, **kwargs)
+
+    def set_cli_timeout(self, *args, **kwargs):
+        return self._cli.set_cli_timeout(*args, **kwargs)
+
+    def send(self, *args, **kwargs):
+        return self._cli.send(*args, **kwargs)
+
+    def sendcmd_simple(self, *args, **kwargs):
+        return self._cli.sendcmd_simple(*args, **kwargs)
+
+    def sendcmd_unchecked(self, *args, **kwargs):
+        return self._cli.sendcmd_unchecked(*args, **kwargs)
+
+    def sendcmd(self, *args, **kwargs):
+        return self._cli.sendcmd(*args, **kwargs)
+
+    def sendcmds(self, *args, **kwargs):
+        return self._cli.sendcmds(*args, **kwargs)
+
+    def expect(self, *args, **kwargs):
+        return self._cli.expect(*args, **kwargs)
+
+    def sendline(self, *args, **kwargs):
+        return self._cli.sendline(*args, **kwargs)
+
+    def sendintr(self, *args, **kwargs):
+        return self._cli.sendintr(*args, **kwargs)
+
+    @property
+    def cli_flavor(self):
+        return self._cli.cli_flavor
+
+    @cli_flavor.setter
+    def cli_flavor(self, value):
+        self._cli.cli_flavor = value
+
+    @property
+    def device_generation(self):
+        return self._cli.device_generation
+
+    @property
+    def plm_wd_supported(self):
+        return self._cli.plm_wd_supported
+
+    @plm_wd_supported.setter
+    def plm_wd_supported(self, value):
+        self._cli.plm_wd_supported = value
+
+    @property
+    def serial(self):
+        return self._cli.serial
+
+    @property
+    def micro_version(self):
+        return self._cli.micro_version
+
+    @property
+    def username(self):
+        return self._cli.username
+
+    @property
+    def password(self):
+        return self._cli.password
+
+    @property
+    def before(self):
+        return self._cli.before
+
+    @property
+    def args(self):
+        return self._cli.args
+
+
 def create_ssh_fixture(name):
     @pytest.fixture(scope="session", name=f"{name}_ssh")
     def _ssh(request):
         try:
-            ssh = CLI(f"ssh://{request.getfixturevalue(f'{name}_hostname')}")
-            ssh.login()
+            ssh = _CLI_wrapper(f"ssh://{request.getfixturevalue(f'{name}_hostname')}")
         except Exception as exc:
             logging.error("Failed to create ssh fixture and log in")
             raise exc
@@ -143,6 +242,24 @@ def create_ssh_fixture(name):
         yield ssh
 
     return _ssh
+
+
+def create_console_fixture(name):
+    @pytest.fixture(scope="session", name=f"{name}_console")
+    def _console(request):
+        try:
+            console_url = request.getfixturevalue(f"{name}_console_url")
+            # Ignore encoding errors for the console -- various conditions
+            # cause non-UTF-8 characters to be received.
+            console = _CLI_wrapper(console_url, ignore_encoding_errors=True)
+        except Exception as exc:
+            logging.error("Failed to create console fixture and log in")
+            raise exc
+        if console.cli_flavor == "mos":
+            console.sendcmd("enable")
+        yield console
+
+    return _console
 
 
 def create_xapi_fixture(name):
