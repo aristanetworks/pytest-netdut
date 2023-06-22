@@ -1,9 +1,9 @@
 Netdut: automated software testing for switches using pytest
 ============================================================
 
-![PyPi](https://img.shields.io/pypi/v/pytest-netdut.svg) 
+![PyPi](https://img.shields.io/pypi/v/pytest-netdut.svg)
 ![Python Versions](https://img.shields.io/pypi/pyversions/pytest-netdut.svg)
-![collection version](https://img.shields.io/github/v/release/aristanetworks/pytest-netdut) 
+![collection version](https://img.shields.io/github/v/release/aristanetworks/pytest-netdut)
 ![License](https://img.shields.io/github/license/aristanetworks/pytest-netdut)
 
 Netdut is a [pytest](https://docs.pytest.org/) plugin which provides infrastructure (e.g. pytest fixtures) which make it easy to write automated tests for network switches.
@@ -13,8 +13,8 @@ Features
 --------
 
 * Brings the power, maturity and ecosystem of pytest to testing on network switches.
-* The `dut` fixture (Device Under Test) providing serial, ssh or [EAPI](https://github.com/arista-eosplus/pyeapi) connectivity for running CLI commands on a network switch. 
-* Command-line configuration of a hostname and console name. 
+* The `dut` fixture (Device Under Test) providing serial, ssh or [EAPI](https://github.com/arista-eosplus/pyeapi) connectivity for running CLI commands on a network switch.
+* Command-line configuration of a hostname and console name.
 * Markers for skipping tests based on the device's type or software configuration.
 * Compatibility with both Arista's EOS operating system, and the Metamako MOS operating system.
 * A pythonic interfaces for writing EOS CLI commands.
@@ -156,6 +156,22 @@ def test_that_only_runs_on_eos_on_7130(dut):
     logging.info("Must be EOS on 7130!")
 ```
 
+OS decorators accept the following keywords per OS:
+ - min_version
+ - min_change_number
+
+Expected DUT verison format: ```D.D.D(F|M)-XX-XX-<change_number>```
+I.e. series of dot separated decimals (min_version) and
+the last word after the last dash will be interpreted as the change number.
+
+If both kwargs are specified, min_change_number takes precedence.
+```python
+@pytest.mark.eos(min_version="4.30.0")
+@pytest.mark.skip_device_type("DCS-7130.*")
+def test_that_only_runs_on_eos_on_7130(dut):
+    logging.info("Must be EOS on 7130!")
+```
+
 ### Building test harnesses
 
 Pytest's fixture mechanism is very powerful in this scenario, allowing us to set up and tear
@@ -216,7 +232,7 @@ to snake_case.
 The translator has a predefined set of translations which can be extended by subclassing the Translator class and overriding `config_patterns`.
 Return values are processed by the `translate_key` function which must be defined in the subclass.
 
-Set the new translator class via `eapi.set_translator(<class instance>)`. 
+Set the new translator class via `eapi.set_translator(<class instance>)`.
 
 Contributing
 ------------

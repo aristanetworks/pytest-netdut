@@ -144,6 +144,7 @@ def create(name) -> Callable:
         factories.create_console_url_fixture(name),
         factories.create_skipper_fixture(name),
         factories.create_sku_fixture(name),
+        factories.create_os_version_fixture(name),
         factories.create_softened_fixture(name),
         factories.create_ssh_fixture(name),
         factories.create_xapi_fixture(name),
