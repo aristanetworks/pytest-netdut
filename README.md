@@ -160,7 +160,7 @@ OS decorators accept the following keywords per OS:
  - min_version
  - min_change_number
 
-Expected DUT verison format: ```D.D.D(F|M)-XX-XX-<change_number>```
+Expected DUT verison format: ```<D.D.D>XX-XX-XX-<change_number>```
 I.e. series of dot separated decimals (min_version) and
 the last word after the last dash will be interpreted as the change number.
 
