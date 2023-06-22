@@ -73,6 +73,32 @@ def create_console_url_fixture(name):
     return _console_url
 
 
+def parse_version(v):
+    """Return series of dot separated digits from beginning of string
+    as release and the last group delimited by - as change number."""
+    _regex = r"""
+        (?P<release>[0-9]+(?:\.[0-9]+)*)
+        (?:
+            [-]?
+            (?P<change_number>[\w]+)
+        )*
+    """
+    _regex = re.compile(_regex, re.VERBOSE)
+    # _regex = r"(?P<release>[\d\.]*)"
+    parsed = re.match(_regex, v)
+    return (parsed.group("release"), parsed.group("change_number"))
+
+
+def version_skipper(found, expected):
+    try:
+        found = version.Version(found)
+        expected = version.Version(expected)
+        if found < expected:
+            pytest.skip(f"min_version {expected} not satisfied: {found}")
+    except version.InvalidVersion:
+        logging.error("Could not parse versions: %s < %s", found, expected)
+
+
 def create_skipper_fixture(name):
     @pytest.fixture(scope="session", name=f"{name}_skipper")
     def _skipper(request):
@@ -99,30 +125,6 @@ def create_skipper_fixture(name):
                     sku = request.getfixturevalue(f"{name}_sku")
                     if re.search(pattern, sku):
                         pytest.skip(f"Skipped on this SKU: {sku}")
-
-            def parse_version(v):
-                """Return series of dot separated digits from beginning of string
-                as release and the last group delimited by - as change number."""
-                _regex = r"""
-                    (?P<release>[0-9]+(?:\.[0-9]+)*)
-                    (?:
-                        [-]?
-                        (?P<change_number>[\w]+)
-                    )*
-                """
-                _regex = re.compile(_regex, re.VERBOSE)
-                # _regex = r"(?P<release>[\d\.]*)"
-                parsed = re.match(_regex, v)
-                return (parsed.group("release"), parsed.group("change_number"))
-
-            def version_skipper(found, expected):
-                try:
-                    found = version.Version(found)
-                    expected = version.Version(expected)
-                    if found < expected:
-                        pytest.skip(f"min_version {expected} not satisfied: {found}")
-                except version.InvalidVersion:
-                    logging.error(f"Could not parse versions: {found} < {expected}")
 
             if allowed_os:
                 dut_ssh = request.getfixturevalue(f"{name}_ssh")
