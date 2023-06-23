@@ -236,6 +236,9 @@ class _CLI_wrapper:
     def sendintr(self, *args, **kwargs):
         return self._cli.sendintr(*args, **kwargs)
 
+    def prompt(self, *args, **kwargs):
+        return self._cli.prompt(*args, **kwargs)
+
     @property
     def cli_flavor(self):
         return self._cli.cli_flavor
