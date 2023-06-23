@@ -160,12 +160,6 @@ OS decorators accept the following keywords:
  - min_version
  - min_change_number
 
-The object must be a python version object
-
-Expected verison format reported by DUT: ```<D.D.D>XX-XX-XX-<change_number>```
-I.e. series of dot separated decimals (min_version) and
-the last word after the last dash will be interpreted as the change number.
-
 If both kwargs are specified, min_change_number takes precedence.
 ```python
 @pytest.mark.eos(min_version="4.30.0", min_change_number="3452345")
