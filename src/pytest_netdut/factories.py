@@ -91,8 +91,8 @@ def parse_version(v):
 
 def version_skipper(found, expected):
     try:
-        found = version.Version(found)
-        expected = version.Version(expected)
+        found = version.Version(str(found))
+        expected = version.Version(str(expected))
         if found < expected:
             pytest.skip(f"min_version {expected} not satisfied: {found}")
     except version.InvalidVersion:

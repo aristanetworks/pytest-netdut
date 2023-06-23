@@ -157,12 +157,12 @@ def test_that_only_runs_on_eos_on_7130(dut):
 ```
 
 OS decorators accept the following keywords:
- - min_version
- - min_change_number
+ - min_version (string)
+ - min_change_number (int)
 
 If both kwargs are specified, min_change_number takes precedence.
 ```python
-@pytest.mark.eos(min_version="4.30.0", min_change_number="3452345")
+@pytest.mark.eos(min_version="4.30.0", min_change_number=3452345)
 @pytest.mark.skip_device_type("DCS-7130.*")
 def test_that_only_runs_on_eos_on_7130(dut):
     logging.info("Must be EOS on 7130!")
