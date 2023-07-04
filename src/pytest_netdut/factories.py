@@ -17,6 +17,7 @@
 import logging
 import re
 import pytest
+from packaging import version
 from .wrappers import CLI, xapi
 
 logger = logging.getLogger(__name__)
@@ -72,16 +73,46 @@ def create_console_url_fixture(name):
     return _console_url
 
 
+def parse_version(v):
+    """Return series of dot separated digits from beginning of string
+    as release and the last group delimited by - as change number."""
+    _regex = r"""
+        (?P<release>[0-9]+(?:\.[0-9]+)*)
+        (?:
+            [-]?
+            (?P<change_number>[\w]+)
+        )*
+    """
+    _regex = re.compile(_regex, re.VERBOSE)
+    # _regex = r"(?P<release>[\d\.]*)"
+    parsed = re.match(_regex, v)
+    return (parsed.group("release"), parsed.group("change_number"))
+
+
+def version_skipper(found, expected):
+    try:
+        found = version.Version(str(found))
+        expected = version.Version(str(expected))
+        if found < expected:
+            pytest.skip(f"min_version {expected} not satisfied: {found}")
+    except version.InvalidVersion:
+        logging.error("Could not parse versions: %s < %s", found, expected)
+
+
 def create_skipper_fixture(name):
     @pytest.fixture(scope="session", name=f"{name}_skipper")
     def _skipper(request):
         def skipper(node):
             allowed_os = set()
+            min_version = None
+            min_chg_num = None
 
             # Restrict SKUs
             for marker in node.iter_markers():
                 if marker.name in {"mos", "eos"}:
                     allowed_os.add(marker.name)
+                    min_chg_num = marker.kwargs.get("min_change_number", None)
+                    min_version = marker.kwargs.get("min_version", None)
 
                 elif marker.name == "only_device_type":
                     pattern = marker.args[0]
@@ -97,8 +128,16 @@ def create_skipper_fixture(name):
 
             if allowed_os:
                 dut_ssh = request.getfixturevalue(f"{name}_ssh")
+                dut_os_version = request.getfixturevalue(f"{name}_os_version")
                 if dut_ssh.cli_flavor not in allowed_os:
-                    pytest.skip(f"cannot run on platform {dut_ssh.cli_flavor}")
+                    pytest.skip(f"Cannot run on platform {dut_ssh.cli_flavor}")
+                if min_version or min_chg_num:
+                    # matches the pattern X.XX.X.XX with digits only
+                    release, change_number = parse_version(dut_os_version)
+                    if min_chg_num:
+                        version_skipper(change_number, min_chg_num)
+                    else:
+                        version_skipper(release, min_version)
 
         return skipper
 
@@ -116,6 +155,19 @@ def create_sku_fixture(name):
         yield matcher.group(1)
 
     return _sku
+
+
+def create_os_version_fixture(name):
+    @pytest.fixture(scope="session", name=f"{name}_os_version")
+    def _os_version(request):
+        ssh = request.getfixturevalue(f"{name}_ssh")
+        assert ssh.cli_flavor in {"eos", "mos"}
+        output = ssh.sendcmd("show version", timeout=300)
+        matcher = re.search(r"Software image version: (\S*)", output)
+        logging.info("Got OS version: %s", matcher.group(1))
+        yield matcher.group(1)
+
+    return _os_version
 
 
 def create_softened_fixture(name):
