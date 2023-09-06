@@ -12,7 +12,7 @@ CMD ["tox"]
 
 # Recipes to run tox
 FROM build as run
-RUN tox --parallel
+RUN tox
 
 FROM scratch as results
 COPY --from=run /src/test-reports /
