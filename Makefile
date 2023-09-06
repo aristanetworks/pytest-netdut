@@ -29,7 +29,7 @@ ci: tox_docker
 
 tox_docker: |$(BUILD_DIR)/
 	rm -rf $(BUILD_DIR)/test-reports
-	DOCKER_BUILDKIT=1 docker build . --target=results  --output=type=local,dest=$(BUILD_DIR)/test-reports && \
+	docker buildx build . --target=results  --output=type=local,dest=$(BUILD_DIR)/test-reports && \
 		touch $(BUILD_DIR)/test-reports/*.xml
 
 mkdocs_docker: |$(BUILD_DIR)
