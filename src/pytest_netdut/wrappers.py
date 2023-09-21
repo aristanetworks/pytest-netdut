@@ -185,8 +185,10 @@ class EAPI:
         data = self._conn.execute(_splitcmds(cmds))["result"]
 
         if self.translator and translate:
-            return [self.translator.json(item) for item in data]
+            data = [self.translator.json(item) for item in data]
 
+        if any(data):
+            logging.info(pprint.pformat(data))
         return data
 
 
