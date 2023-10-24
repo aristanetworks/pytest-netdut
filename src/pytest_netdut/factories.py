@@ -150,9 +150,9 @@ def create_sku_fixture(name):
         ssh = request.getfixturevalue(f"{name}_ssh")
         assert ssh.cli_flavor in {"eos", "mos"}
         output = ssh.sendcmd("show version", timeout=300)
-        matcher = re.search(r"(DCS-7.*)", output)
-        logging.info("Got SKU: %s", matcher.group(1))
-        yield matcher.group(1)
+        match = re.search(r"(DCS-7.*)", output)
+        logging.info("Got SKU: %s", match.group(1))
+        yield match.group(1)
 
     return _sku
 
@@ -164,15 +164,15 @@ def create_os_version_fixture(name):
         assert ssh.cli_flavor in {"eos", "mos"}
         output = ssh.sendcmd("show version", timeout=300)
         if ssh.cli_flavor == "mos":
-            matcher = re.search(r"Software image version: (\S*)", output)
+            match = re.search(r"Software image version: (\S*)", output)
         else:
             # On release SWIs the "Sofware image version" only contains the version, e.g.
             #   Software image version: 4.31.0F
             #   Architecture: x86_64
             #   Internal build version: 4.31.0F-33797590.4310F
-            matcher = re.search(r"Internal build version: (\S*)", output)
-        logging.info("Got OS version: %s", matcher.group(1))
-        yield matcher.group(1)
+            match = re.search(r"Internal build version: (\S*)", output)
+        logging.info("Got OS version: %s", match.group(1))
+        yield match.group(1)
 
     return _os_version
 
