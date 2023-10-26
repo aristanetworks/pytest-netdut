@@ -19,6 +19,7 @@ import re
 import pytest
 from packaging import version
 from .wrappers import CLI, xapi
+import traceback
 
 logger = logging.getLogger(__name__)
 
@@ -296,9 +297,10 @@ def create_ssh_fixture(name):
     def _ssh(request):
         try:
             ssh = _CLI_wrapper(f"ssh://{request.getfixturevalue(f'{name}_hostname')}")
-        except Exception as exc:
+        except Exception:
             logging.error("Failed to create ssh fixture and log in")
-            raise exc
+            traceback.print_exc()
+            pytest.exit("SSH fixture failure; terminating session")
         if ssh.cli_flavor == "mos":
             ssh.sendcmd("enable")
         yield ssh
@@ -314,9 +316,10 @@ def create_console_fixture(name):
             # Ignore encoding errors for the console -- various conditions
             # cause non-UTF-8 characters to be received.
             console = _CLI_wrapper(console_url, ignore_encoding_errors=True)
-        except Exception as exc:
+        except Exception:
             logging.error("Failed to create console fixture and log in")
-            raise exc
+            traceback.print_exc()
+            pytest.exit("Console fixture failure; terminating session")
         if console.cli_flavor == "mos":
             console.sendcmd("enable")
         yield console
