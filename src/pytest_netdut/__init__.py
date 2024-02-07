@@ -69,6 +69,7 @@ def test_showver(dut):
     to this hostname.
 
 """
+
 from typing import Callable
 import logging
 import pytest
