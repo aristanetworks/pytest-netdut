@@ -301,6 +301,8 @@ def create_ssh_fixture(name):
             raise exc
         if ssh.cli_flavor == "mos":
             ssh.sendcmd("enable")
+        # Disable pagination
+        ssh.sendcmd("terminal length 0")
         yield ssh
 
     return _ssh
