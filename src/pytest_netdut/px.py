@@ -151,6 +151,7 @@ class CLI(Shell):
         if self.cmd == "ssh":
             self.args = ["%s@%s" % (username, o.hostname)]
             self.args += ["-o LogLevel ERROR"]
+            self.args += ["-o ConnectionAttempts 10"]
             self.args += ["-o StrictHostKeyChecking no"]
             self.args += ["-o UserKnownHostsFile /dev/null"]
             # default is whatever TCP timeout at OS level
