@@ -1,5 +1,5 @@
 # -------------------------------------------------------------------------------
-# - Copyright (c) 2021 Arista Networks, Inc. All rights reserved.
+# - Copyright (c) 2021-2024 Arista Networks, Inc. All rights reserved.
 # -------------------------------------------------------------------------------
 # - Author:
 # -   fdk-support@arista.com
@@ -19,6 +19,7 @@ import re
 import pytest
 from packaging import version
 from .wrappers import CLI, xapi
+from functools import wraps
 
 logger = logging.getLogger(__name__)
 
@@ -108,36 +109,39 @@ def create_skipper_fixture(name):
             min_chg_num = None
 
             # Restrict SKUs
-            for marker in node.iter_markers():
-                if marker.name in {"mos", "eos"}:
-                    allowed_os.add(marker.name)
-                    min_chg_num = marker.kwargs.get("min_change_number", None)
-                    min_version = marker.kwargs.get("min_version", None)
+            try:
+                for marker in node.iter_markers():
+                    if marker.name in {"mos", "eos"}:
+                        allowed_os.add(marker.name)
+                        min_chg_num = marker.kwargs.get("min_change_number", None)
+                        min_version = marker.kwargs.get("min_version", None)
 
-                elif marker.name == "only_device_type":
-                    pattern = marker.args[0]
-                    sku = request.getfixturevalue(f"{name}_sku")
-                    if not re.search(pattern, sku):
-                        pytest.skip(f"Skipped on this SKU: {sku} (only runs on {pattern})")
+                    elif marker.name == "only_device_type":
+                        pattern = marker.args[0]
+                        sku = request.getfixturevalue(f"{name}_sku")
+                        if not re.search(pattern, sku):
+                            pytest.skip(f"Skipped on this SKU: {sku} (only runs on {pattern})")
 
-                elif marker.name == "skip_device_type":
-                    pattern = marker.args[0]
-                    sku = request.getfixturevalue(f"{name}_sku")
-                    if re.search(pattern, sku):
-                        pytest.skip(f"Skipped on this SKU: {sku}")
+                    elif marker.name == "skip_device_type":
+                        pattern = marker.args[0]
+                        sku = request.getfixturevalue(f"{name}_sku")
+                        if re.search(pattern, sku):
+                            pytest.skip(f"Skipped on this SKU: {sku}")
 
-            if allowed_os:
-                dut_ssh = request.getfixturevalue(f"{name}_ssh")
-                dut_os_version = request.getfixturevalue(f"{name}_os_version")
-                if dut_ssh.cli_flavor not in allowed_os:
-                    pytest.skip(f"Cannot run on platform {dut_ssh.cli_flavor}")
-                if min_version or min_chg_num:
-                    # matches the pattern X.XX.X.XX with digits only
-                    release, change_number = parse_version(dut_os_version)
-                    if min_chg_num:
-                        version_skipper(change_number, min_chg_num)
-                    else:
-                        version_skipper(release, min_version)
+                if allowed_os:
+                    dut_ssh = request.getfixturevalue(f"{name}_ssh")
+                    dut_os_version = request.getfixturevalue(f"{name}_os_version")
+                    if dut_ssh.cli_flavor not in allowed_os:
+                        pytest.skip(f"Cannot run on platform {dut_ssh.cli_flavor}")
+                    if min_version or min_chg_num:
+                        # matches the pattern X.XX.X.XX with digits only
+                        release, change_number = parse_version(dut_os_version)
+                        if min_chg_num:
+                            version_skipper(change_number, min_chg_num)
+                        else:
+                            version_skipper(release, min_version)
+            except pytest.FixtureLookupError:
+                logger.debug("Pytest fixture recursion caught.")
 
         return skipper
 
@@ -196,6 +200,32 @@ def create_softened_fixture(name):
     return _softened
 
 
+def retry(limit):
+    def decorator(fn):
+        @wraps(fn)
+        def wrapper(*args, **kwargs):
+            attempt, limit_ = 0, limit
+            result = None
+            while attempt < limit_:
+                try:
+                    result = fn(*args, **kwargs)
+                    break
+                except Exception as e:
+                    attempt += 1
+                    logging.error(
+                        "An error occurred in %s, attempt %d of %d: %s",
+                        fn.__name__,
+                        attempt,
+                        limit_,
+                        e,
+                    )
+            return result
+
+        return wrapper
+
+    return decorator
+
+
 class _CLI_wrapper:
     _cli = None
 
@@ -213,6 +243,7 @@ class _CLI_wrapper:
     def close(self, *args, **kwargs):
         return self._cli.close(*args, **kwargs)
 
+    @retry(3)
     def login(self, *args, **kwargs):
         return self._cli.login(*args, **kwargs)
 
@@ -294,15 +325,16 @@ class _CLI_wrapper:
 def create_ssh_fixture(name):
     @pytest.fixture(scope="session", name=f"{name}_ssh")
     def _ssh(request):
+        ssh = _CLI_wrapper(f"ssh://{request.getfixturevalue(f'{name}_hostname')}")
+        # do not break the fixture if SSH failed
+        # pass the failure into the test
         try:
-            ssh = _CLI_wrapper(f"ssh://{request.getfixturevalue(f'{name}_hostname')}")
-        except Exception as exc:
-            logging.error("Failed to create ssh fixture and log in")
-            raise exc
-        if ssh.cli_flavor == "mos":
-            ssh.sendcmd("enable")
-        # Disable pagination
-        ssh.sendcmd("terminal length 0")
+            if ssh.cli_flavor == "mos":
+                ssh.sendcmd("enable")
+            # Disable pagination
+            ssh.sendcmd("terminal length 0")
+        except AttributeError:
+            pass
         yield ssh
 
     return _ssh
