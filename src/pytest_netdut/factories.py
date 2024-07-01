@@ -200,22 +200,23 @@ def create_softened_fixture(name):
     return _softened
 
 
-def retry(retries):
+def retry(limit):
     def decorator(fn):
         @wraps(fn)
         def wrapper(*args, **kwargs):
-            retries_ = retries
+            attempt, limit_ = 0, limit
             result = None
-            while retries_:
+            while attempt < limit_:
                 try:
                     result = fn(*args, **kwargs)
                     break
                 except Exception as e:
-                    retries_ -= 1
+                    attempt += 1
                     logging.error(
-                        "An error occurred in %s, retries left %d: %s",
+                        "An error occurred in %s, attempt %d of %d: %s",
                         fn.__name__,
-                        retries_,
+                        attempt,
+                        limit_,
                         e,
                     )
             return result
@@ -325,13 +326,15 @@ def create_ssh_fixture(name):
     @pytest.fixture(scope="session", name=f"{name}_ssh")
     def _ssh(request):
         ssh = _CLI_wrapper(f"ssh://{request.getfixturevalue(f'{name}_hostname')}")
-        if ssh.cli_flavor == "mos":
-            # do not break the fixture if SSH failed
-            # pass the failure into the test
-            try:
+        # do not break the fixture if SSH failed
+        # pass the failure into the test
+        try:
+            if ssh.cli_flavor == "mos":
                 ssh.sendcmd("enable")
-            except AttributeError:
-                pass
+            # Disable pagination
+            ssh.sendcmd("terminal length 0")
+        except AttributeError:
+            pass
         yield ssh
 
     return _ssh
