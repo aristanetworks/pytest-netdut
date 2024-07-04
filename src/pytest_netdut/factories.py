@@ -333,6 +333,7 @@ def create_ssh_fixture(name):
                     ssh.sendcmd("enable")
                 except AttributeError:
                     pass
+            yield ssh
 
     return _ssh
 
