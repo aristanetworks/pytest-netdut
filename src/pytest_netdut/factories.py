@@ -19,7 +19,7 @@ import re
 import pytest
 from packaging import version
 from .wrappers import CLI, xapi
-from functools import wraps
+import tempfile
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +120,9 @@ def create_skipper_fixture(name):
                         pattern = marker.args[0]
                         sku = request.getfixturevalue(f"{name}_sku")
                         if not re.search(pattern, sku):
-                            pytest.skip(f"Skipped on this SKU: {sku} (only runs on {pattern})")
+                            pytest.skip(
+                                f"Skipped on this SKU: {sku} (only runs on {pattern})"
+                            )
 
                     elif marker.name == "skip_device_type":
                         pattern = marker.args[0]
@@ -200,32 +202,6 @@ def create_softened_fixture(name):
     return _softened
 
 
-def retry(limit):
-    def decorator(fn):
-        @wraps(fn)
-        def wrapper(*args, **kwargs):
-            attempt, limit_ = 0, limit
-            result = None
-            while attempt < limit_:
-                try:
-                    result = fn(*args, **kwargs)
-                    break
-                except Exception as e:
-                    attempt += 1
-                    logging.error(
-                        "An error occurred in %s, attempt %d of %d: %s",
-                        fn.__name__,
-                        attempt,
-                        limit_,
-                        e,
-                    )
-            return result
-
-        return wrapper
-
-    return decorator
-
-
 class _CLI_wrapper:
     _cli = None
 
@@ -243,7 +219,6 @@ class _CLI_wrapper:
     def close(self, *args, **kwargs):
         return self._cli.close(*args, **kwargs)
 
-    @retry(3)
     def login(self, *args, **kwargs):
         return self._cli.login(*args, **kwargs)
 
@@ -322,20 +297,42 @@ class _CLI_wrapper:
         return self._cli.args
 
 
+class _SSH_CLI_wrapper(_CLI_wrapper):
+    def login(self, *args, **kwargs):
+        attempt, limit = 0, 3
+        result = None
+        while attempt < limit:
+            try:
+                result = self._cli.login(*args, **kwargs)
+                break
+            except Exception as e:
+                attempt += 1
+                with open(self._cli.ssh_debug_filename, "r") as f:
+                    ssh_debug = f.read()
+                logging.error(
+                    "An error occurred during login, attempt %d\n%s %s",
+                    attempt,
+                    ssh_debug,
+                    e,
+                )
+        return result
+
+
 def create_ssh_fixture(name):
     @pytest.fixture(scope="session", name=f"{name}_ssh")
     def _ssh(request):
-        ssh = _CLI_wrapper(f"ssh://{request.getfixturevalue(f'{name}_hostname')}")
-        # do not break the fixture if SSH failed
-        # pass the failure into the test
-        try:
+        with tempfile.NamedTemporaryFile(delete=True) as ssh_debug_file:
+            ssh = _SSH_CLI_wrapper(
+                f"ssh://{request.getfixturevalue(f'{name}_hostname')}",
+                ssh_debug_filename=ssh_debug_file.name,
+            )
             if ssh.cli_flavor == "mos":
-                ssh.sendcmd("enable")
-            # Disable pagination
-            ssh.sendcmd("terminal length 0")
-        except AttributeError:
-            pass
-        yield ssh
+                # do not break the fixture if SSH failed
+                # pass the failure into the test
+                try:
+                    ssh.sendcmd("enable")
+                except AttributeError:
+                    pass
 
     return _ssh
 
