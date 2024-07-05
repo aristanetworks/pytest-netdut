@@ -1,5 +1,5 @@
 # -------------------------------------------------------------------------------
-# - Copyright (c) 2021 Arista Networks, Inc. All rights reserved.
+# - Copyright (c) 2021-2024 Arista Networks, Inc. All rights reserved.
 # -------------------------------------------------------------------------------
 # - Author:
 # -   fdk-support@arista.com
@@ -58,9 +58,7 @@ class Shell(spawn):
     def syncprompt(self):
         self.expect(self._prompt_regex)
         # Use captured serial number / hostname for finding the prompt
-        self._prompt = re.compile(
-            self._control_code_re + self.match.group(1) + self._mode_and_path_re
-        )
+        self._prompt = re.compile(self._control_code_re + self.match.group(1) + self._mode_and_path_re)
 
     def prompt(self, timeout=-1, reset=0):
         if reset:
@@ -70,9 +68,7 @@ class Shell(spawn):
         return self.before.replace("\r\n", "\n")
 
     def sendcmd(self, cmd="", timeout=-1, reset=0, wait=True):
-        if not isinstance(self.after, six.string_types) or not self._prompt.match(
-            self.after
-        ):
+        if not isinstance(self.after, six.string_types) or not self._prompt.match(self.after):
             raise RuntimeError(
                 "Cannot find prompt. Refusing to send command.",
                 self.after,
@@ -104,9 +100,7 @@ class Shell(spawn):
         except TIMEOUT:
             # This deals with long commands on the serial console
             if not cmd.startswith(
-                self.before[
-                    : self.before.index("\r")
-                ].strip()  # pylint: disable=unsubscriptable-object
+                self.before[: self.before.index("\r")].strip()  # pylint: disable=unsubscriptable-object
             ):
                 raise
 
@@ -260,9 +254,7 @@ class CLI(Shell):
         if matcher:
             self.serial = matcher.group(1)
 
-        matcher = re.search(
-            r"System management controller version: (\d+)", show_version
-        )
+        matcher = re.search(r"System management controller version: (\d+)", show_version)
         if matcher:
             self.micro_version = matcher.group(1)
 
@@ -283,9 +275,7 @@ class CLI(Shell):
             output = self.prompt(timeout=timeout, reset=1)
             self.process_output(output)
 
-        self.sendcmd_simple(
-            "bash echo ===> px Determined the {} CLI flavor".format(self.cli_flavor)
-        )
+        self.sendcmd_simple("bash echo ===> px Determined the {} CLI flavor".format(self.cli_flavor))
 
         if self.cli_flavor == "mos":
             self.sendcmd_simple("set debug 1", timeout=10)
@@ -307,9 +297,7 @@ class CLI(Shell):
             # querying register PLM_VER_PATCH(0x7e)
             try:
                 if self.device_generation == 2:
-                    plm_ver_patch = self.sendcmd(
-                        "bash i2cget -f -y 1 0x77 0x7e b"
-                    ).strip()
+                    plm_ver_patch = self.sendcmd("bash i2cget -f -y 1 0x77 0x7e b").strip()
                     self.plm_wd_supported = plm_ver_patch != "0xdb"
             except Exception:  # pylint: disable=broad-except
                 pass
@@ -326,9 +314,7 @@ class CLI(Shell):
             # This should also handle the case where a password prompt is presented
             # because a TACACS server has been configured even though there is no
             # password actually configured for the user.
-            index = self.expect(
-                [TIMEOUT, "Last login:.*\r\n", "Password:", "Aboot#"], timeout=10
-            )
+            index = self.expect([TIMEOUT, "Last login:.*\r\n", "Password:", "Aboot#"], timeout=10)
             if index == 2:
                 self.sendline(self.password)
 
@@ -339,13 +325,9 @@ class CLI(Shell):
         except TIMEOUT:
             # Check if the CLI is busted or if previous tests left a password set
             try:
-                index = self.expect(
-                    ["Traceback", "Login incorrect", "Password:"], timeout=10
-                )
+                index = self.expect(["Traceback", "Login incorrect", "Password:"], timeout=10)
                 if index == 0:
-                    raise RuntimeError(
-                        "CLI is busted, try logging in as root!"
-                    )  # pylint: disable=raise-missing-from
+                    raise RuntimeError("CLI is busted, try logging in as root!")  # pylint: disable=raise-missing-from
                 if index == 1:
                     self.expect("login:", timeout=2)
                     self.sendline(self.username)
@@ -357,9 +339,7 @@ class CLI(Shell):
                     self.sendline("opensesame")  # This is used in some tests.
                     self.expect("Last login:.*\r\n", timeout=10)
                 self.expect("Traceback", timeout=10)
-                raise RuntimeError(
-                    "CLI is busted, try logging in as root!"
-                )  # pylint: disable=raise-missing-from
+                raise RuntimeError("CLI is busted, try logging in as root!")  # pylint: disable=raise-missing-from
             except TIMEOUT:
                 self.prompt(reset=1)
 
@@ -496,9 +476,7 @@ class CLI(Shell):
 
 class FlakyTimeoutError(Exception):
     def __init__(self, cmd, timeout, actual_time):
-        super(FlakyTimeoutError, self).__init__(
-            cmd, timeout, actual_time
-        )  # pylint: disable=super-with-arguments
+        super(FlakyTimeoutError, self).__init__(cmd, timeout, actual_time)  # pylint: disable=super-with-arguments
         self.cmd = cmd
         self.timeout = timeout
         self.actual_time = actual_time
@@ -514,25 +492,19 @@ class FlakyTimeoutError(Exception):
 
 class CommandTimeoutError(FlakyTimeoutError):
     def __repr__(self):
-        return (
-            "{}: "
-            "command {!r} took longer than expected "
-            "(actual time {!r}s, expected time {!r}s)"
-        ).format(self.__class__.__name__, self.cmd, self.actual_time, self.timeout)
+        return ("{}: " "command {!r} took longer than expected " "(actual time {!r}s, expected time {!r}s)").format(
+            self.__class__.__name__, self.cmd, self.actual_time, self.timeout
+        )
 
 
 class PromptTimeoutError(FlakyTimeoutError):
     def __repr__(self):
-        return (
-            "{}: command {!r} didn't finish after {!r}s (expected time {!r}s)".format(
-                self.__class__.__name__, self.cmd, self.actual_time, self.timeout
-            )
+        return "{}: command {!r} didn't finish after {!r}s (expected time {!r}s)".format(
+            self.__class__.__name__, self.cmd, self.actual_time, self.timeout
         )
 
 
-def run(
-    command, quiet=False, *args, **kwargs
-):  # pylint: disable=keyword-arg-before-vararg
+def run(command, quiet=False, *args, **kwargs):  # pylint: disable=keyword-arg-before-vararg
     output, status = pexpect.run(command, withexitstatus=1, *args, **kwargs)
     if status != 0:
         if not quiet:
