@@ -120,9 +120,7 @@ def create_skipper_fixture(name):
                         pattern = marker.args[0]
                         sku = request.getfixturevalue(f"{name}_sku")
                         if not re.search(pattern, sku):
-                            pytest.skip(
-                                f"Skipped on this SKU: {sku} (only runs on {pattern})"
-                            )
+                            pytest.skip(f"Skipped on this SKU: {sku} (only runs on {pattern})")
 
                     elif marker.name == "skip_device_type":
                         pattern = marker.args[0]
@@ -306,7 +304,7 @@ class _SSH_CLI_wrapper(_CLI_wrapper):
                 break
             except Exception as e:
                 attempt += 1
-                with open(self._cli.ssh_debug_filename, "r", encoding='utf-8') as f:
+                with open(self._cli.ssh_debug_filename, "r", encoding="utf-8") as f:
                     ssh_debug = f.read()
                 logging.error(
                     "An error occurred during login, attempt %d\n%s%s",
