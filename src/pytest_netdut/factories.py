@@ -322,13 +322,16 @@ def create_ssh_fixture(name):
                 f"ssh://{request.getfixturevalue(f'{name}_hostname')}",
                 ssh_debug_filename=ssh_debug_file.name,
             )
-            if ssh.cli_flavor == "mos":
-                # do not break the fixture if SSH failed
-                # pass the failure into the test
-                try:
+
+            # do not break the fixture if SSH failed
+            # pass the failure into the test
+            try:
+                if ssh.cli_flavor == "mos":
                     ssh.sendcmd("enable")
-                except AttributeError:
-                    pass
+                # Disable pagination
+                ssh.sendcmd("terminal length 0")
+            except AttributeError:
+                pass
             yield ssh
 
     return _ssh
