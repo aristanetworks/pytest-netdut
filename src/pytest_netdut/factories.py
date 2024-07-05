@@ -299,23 +299,21 @@ class _CLI_wrapper:
 
 class _SSH_CLI_wrapper(_CLI_wrapper):
     def login(self, *args, **kwargs):
-        attempt, limit = 0, 3
-        result = None
-        while attempt < limit:
+        attempt = 0
+        while attempt < 3:
             try:
-                result = self._cli.login(*args, **kwargs)
+                self._cli.login(*args, **kwargs)
                 break
             except Exception as e:
                 attempt += 1
-                with open(self._cli.ssh_debug_filename, "r") as f:
+                with open(self._cli.ssh_debug_filename, "r", encoding='utf-8') as f:
                     ssh_debug = f.read()
                 logging.error(
-                    "An error occurred during login, attempt %d\n%s %s",
+                    "An error occurred during login, attempt %d\n%s%s",
                     attempt,
                     ssh_debug,
                     e,
                 )
-        return result
 
 
 def create_ssh_fixture(name):
