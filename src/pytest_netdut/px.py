@@ -1,5 +1,5 @@
 # -------------------------------------------------------------------------------
-# - Copyright (c) 2021 Arista Networks, Inc. All rights reserved.
+# - Copyright (c) 2021-2024 Arista Networks, Inc. All rights reserved.
 # -------------------------------------------------------------------------------
 # - Author:
 # -   fdk-support@arista.com
@@ -144,13 +144,16 @@ class CLI(Shell):
         enable_cli_timeout=False,
         cli_flavor="mos",
         ignore_encoding_errors=False,
+        ssh_debug_filename="/dev/null",
         extra_args=[],
     ):
         o = six.moves.urllib.parse.urlparse(url)  # pylint: disable=invalid-name
         self.cmd = o.scheme
+        self.ssh_debug_filename = ssh_debug_filename
         if self.cmd == "ssh":
             self.args = ["%s@%s" % (username, o.hostname)]
-            self.args += ["-o LogLevel DEBUG3"]
+            self.args += ["-vvv"]
+            self.args += [f"-E{ssh_debug_filename}"]
             self.args += ["-o ConnectionAttempts 10"]
             self.args += ["-o StrictHostKeyChecking no"]
             self.args += ["-o UserKnownHostsFile /dev/null"]
