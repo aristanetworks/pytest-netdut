@@ -23,20 +23,19 @@ BUILD_DIR=$(CURDIR)/build
 all: package_docker
 ci: tox_docker
 
-# Any target that ends in a slash is a directory to be mkdir'd
-%/:
+$(BUILD_DIR)/:
 	mkdir -p $@
 
 tox_docker: |$(BUILD_DIR)/
 	rm -rf $(BUILD_DIR)/test-reports
-	docker buildx build . --target=results  --output=type=local,dest=$(BUILD_DIR)/test-reports && \
+	docker buildx build . --target=results --output=type=local,dest=$(BUILD_DIR)/test-reports && \
 		touch $(BUILD_DIR)/test-reports/*.xml
 
-mkdocs_docker: |$(BUILD_DIR)
-	DOCKER_BUILDKIT=1 docker build . --target=docs  --output=type=local,dest=$(BUILD_DIR)/docs
+mkdocs_docker: |$(BUILD_DIR)/
+	docker buildx build . --target=docs --output=type=local,dest=$(BUILD_DIR)/docs
 
 package_docker: |$(BUILD_DIR)/
-	DOCKER_BUILDKIT=1 docker build . --target=package --output=type=local,dest=$(BUILD_DIR)/dist
+	docker buildx build . --target=package --output=type=local,dest=$(BUILD_DIR)/dist
 
 clean:
 	rm -rf $(BUILD_DIR)

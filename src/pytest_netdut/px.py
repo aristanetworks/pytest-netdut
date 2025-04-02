@@ -135,7 +135,7 @@ class Shell(spawn):
 
 
 class CLI(Shell):
-    def __init__(  # pylint: disable=dangerous-default-value,too-many-arguments
+    def __init__(  # pylint: disable=dangerous-default-value,too-many-arguments,too-many-positional-arguments
         self,
         url,
         username="admin",
