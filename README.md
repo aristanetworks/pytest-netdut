@@ -23,7 +23,7 @@ Features
 Requirements
 ------------
 
-* Requires python3 >= 3.6, pexpect, pyeapi
+* Requires python3 >= 3.9, pexpect, pyeapi
 * Network devices under test (DUTs) must be accessible via SSH.
 
 
@@ -248,4 +248,4 @@ Distributed under the terms of the [BSD-3](http://opensource.org/licenses/BSD-3-
 Issues
 ------
 
-If you encounter any problems, please [file an issue](https://github.com/dcasnowdon-anet/pytest-netdut/issues) along with a detailed description.
+If you encounter any problems, please [file an issue](https://github.com/aristanetworks/pytest-netdut/issues) along with a detailed description.

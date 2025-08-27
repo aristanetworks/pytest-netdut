@@ -153,7 +153,11 @@ def create(name) -> Callable:
     ]
 
     for fixture in fixtures:
-        globals()[fixture._pytestfixturefunction.name] = fixture
+        try:
+            globals()[fixture.name] = fixture
+        except AttributeError:
+            # For pytest < 8.4.0
+            globals()[fixture._pytestfixturefunction.name] = fixture
 
     return fixtures[0]
 
