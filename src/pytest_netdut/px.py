@@ -1,7 +1,7 @@
 # -------------------------------------------------------------------------------
 # - Copyright (c) 2021-2024 Arista Networks, Inc. All rights reserved.
 # -------------------------------------------------------------------------------
-# - Author:
+# - Maintainers:
 # -   fdk-support@arista.com
 # -
 # - Description:
@@ -14,6 +14,8 @@
 # -   license-bsd-3-clause
 # -
 # -------------------------------------------------------------------------------
+
+# pylint: disable=consider-using-f-string
 
 from __future__ import absolute_import, print_function
 
@@ -28,6 +30,9 @@ import pexpect
 import six
 from pexpect import TIMEOUT, ExceptionPexpect
 from six.moves import range
+
+# setting encoding for python2 and python3 difference
+encoding = "utf-8" if six.text_type == str else None
 
 
 class spawn(pexpect.spawn):
@@ -96,20 +101,22 @@ class Shell(spawn):
         self.sendline(cmd)
 
         try:
-            self.expect(re.escape(cmd), timeout=10)
+            self.expect(re.escape(cmd), timeout=30)
         except TIMEOUT:
             # This deals with long commands on the serial console
-            if not cmd.startswith(
-                self.before[: self.before.index("\r")].strip()  # pylint: disable=unsubscriptable-object
-            ):
+            before = self.before or ""
+            index = before.find("\r")
+            if index >= 0:
+                before = before[:index]
+            if not cmd.startswith(before.strip()):
                 raise
 
         # This deals with disappearing newlines on tty
         try:
-            self.expect("\r\n", timeout=10)
+            self.expect("\r\n", timeout=20)
         except TIMEOUT:
             self.sendline()
-            self.expect("\r\n", timeout=10)
+            self.expect("\r\n", timeout=30)
 
     # This deals with disappearing SIGINTs on tty
     def sendintr(self, retries=5, timeout=5, reset=0, wait=True):
@@ -140,7 +147,7 @@ class CLI(Shell):
         url,
         username="admin",
         password="",
-        timeout=30,
+        timeout=60,
         enable_cli_timeout=False,
         cli_flavor="mos",
         ignore_encoding_errors=False,
@@ -153,14 +160,15 @@ class CLI(Shell):
         if self.cmd == "ssh":
             self.args = ["%s@%s" % (username, o.hostname)]
             self.args += ["-vvv"]
-            self.args += [f"-E{ssh_debug_filename}"]
+            self.args += ["-E%s" % (ssh_debug_filename)]
             self.args += ["-o ConnectionAttempts 10"]
+            self.args += ["-o LogLevel ERROR"]
             self.args += ["-o StrictHostKeyChecking no"]
             self.args += ["-o UserKnownHostsFile /dev/null"]
             # default is whatever TCP timeout at OS level
             # self.args += ['-o ConnectTimeout 10']
             # self.args += ['-o ServerAliveCountMax 3']   # default 3
-            # self.args += ['-o ServerAliveInterval 30']  # default 0
+            self.args += ["-o ServerAliveInterval 60"]  # default 0
             self.args += ["-p %s" % (o.port or "22")]
             self.args += extra_args
         elif self.cmd in ("tcp", "telnet"):
@@ -199,8 +207,13 @@ class CLI(Shell):
         self.plm_wd_supported = None
         self.serial = None
         self.micro_version = None
+        if self.cmd == "console":
+            print(" -- waiting for console connection at {} --".format(time.asctime()))
+            self.expect(r"Enter .* for help", timeout=30)
+            print(" -- console connected at {} --".format(time.asctime()))
 
     def _login_prompt(self, timeout):
+        login_prompt_type = ["TIMEOUT", "MOS", "EOS", "Aboot"]
         time0 = time.time()
         i = 0
         while True:
@@ -214,10 +227,14 @@ class CLI(Shell):
                     self.login_prompt_re_eos,
                     self.login_prompt_re_aboot,
                 ],
-                timeout=2,
+                timeout=5,
             )
 
-            print(" -- Got a login prompt index of {} -- ".format(index))
+            print(
+                " -- Got a login prompt index of {} ({}) at {} --".format(
+                    index, login_prompt_type[index], time.asctime()
+                )
+            )
 
             if index == 1:
                 self.cli_flavor = "mos"
@@ -304,7 +321,7 @@ class CLI(Shell):
 
         self.sendcmd("show clock", timeout=timeout)
 
-    def login(self, timeout=30):  # noqa: MC0001
+    def login(self, timeout=60):  # noqa: MC0001
         if self.cmd != "ssh":
             self._login_prompt(timeout)
 
@@ -318,7 +335,7 @@ class CLI(Shell):
             if index == 2:
                 self.sendline(self.password)
 
-        print("\n -- Waiting for prompt -- \n")
+        print("\n -- Waiting for prompt at {} -- \n".format(time.asctime()))
 
         try:
             self.prompt(reset=1)
