@@ -15,7 +15,6 @@
 # -
 # -------------------------------------------------------------------------------
 
-import contextlib
 import time
 import pexpect
 import pytest
@@ -60,11 +59,12 @@ def wait_for():
         assert timeout > period
 
         if suppress is None:
-            suppress = []
+            suppress = ()
+
         start = time.time()
         while True:
-            with contextlib.suppress(*suppress):
-                result = func()
+            try:
+                result, exception = func(), None
                 if result:
                     elapsed = time.time() - start
                     if elapsed > timeout:
@@ -73,12 +73,20 @@ def wait_for():
                             f"but eventually succeeded after {elapsed} seconds."
                         )
                     return result
+            except Exception as exc:
+                if not isinstance(exc, suppress):
+                    raise exc
+                exception = exc
+
             if time.time() - start > timeout_leeway_factor * timeout:
-                raise pexpect.TIMEOUT(
+                timeout = pexpect.TIMEOUT(
                     f"Function {func} was unsuccessful after the requested {timeout} "
                     f"second timeout, and was also unsuccessful after being allowed "
                     f"a leeway of {timeout_leeway_factor * timeout} seconds."
                 )
+                if exception is not None:
+                    raise exception from timeout
+                raise timeout
             time.sleep(period)
 
     yield _wait_for
