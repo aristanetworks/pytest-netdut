@@ -42,6 +42,9 @@ def test_wait_for(wait_for):
         time.sleep(1.1 * TIMEOUT_LEEWAY_FACTOR * TIMEOUT)
         return False
 
+    def except_fn():
+        raise TypeError
+
     # Test a good function which completes within "timeout" (i.e. does not time out)
     # T < timeout
     wait_for(good_fn, timeout=TIMEOUT)
@@ -55,3 +58,16 @@ def test_wait_for(wait_for):
     # T >= TIMEOUT_LEEWAY_FACTOR * timeout
     with pytest.raises(pexpect.TIMEOUT, match=r"unsuccessful"):
         wait_for(bad_fn, timeout=TIMEOUT)
+
+    # Check that exceptions fail immediately if not suppressed
+    with pytest.raises(TypeError):
+        wait_for(except_fn)
+
+    # Check that only the right exceptions are suppressed
+    with pytest.raises(TypeError):
+        wait_for(except_fn, suppress=(ValueError,))
+
+    # Check that suppressed exception will gets raised from the timeout
+    with pytest.raises(TypeError) as exc_info:
+        wait_for(except_fn, timeout=TIMEOUT, suppress=(TypeError,))
+    assert isinstance(exc_info.value.__cause__, pexpect.TIMEOUT)
