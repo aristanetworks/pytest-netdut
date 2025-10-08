@@ -168,7 +168,7 @@ class CLI(Shell):
             # default is whatever TCP timeout at OS level
             # self.args += ['-o ConnectTimeout 10']
             # self.args += ['-o ServerAliveCountMax 3']   # default 3
-            self.args += ["-o ServerAliveInterval 60"]  # default 0
+            # self.args += ["-o ServerAliveInterval 60"]  # default 0
             self.args += ["-p %s" % (o.port or "22")]
             self.args += extra_args
         elif self.cmd in ("tcp", "telnet"):
